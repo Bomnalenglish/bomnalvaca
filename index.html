@@ -127,12 +127,7 @@
     </div>
     <div class="form-group">
       <label>학교</label>
-      <select id="school">
-        <option value="종촌중">종촌중</option>
-        <option value="어진중">어진중</option>
-        <option value="고운중">고운중</option>
-        <option value="종촌고">종촌고</option>
-      </select>
+      <select id="school"><option value="">로딩 중...</option></select>
     </div>
     <div class="form-group">
       <label>학년</label>
@@ -184,6 +179,22 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// 학교 목록 동적 로드
+const DEFAULT_SCHOOLS = ['종촌중', '어진중', '고운중', '종촌고', '고운고', '대성고'];
+async function loadSchools() {
+  const schoolEl = document.getElementById('school');
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'schools'));
+    const list = (snap.exists() && snap.data().list?.length > 0)
+      ? snap.data().list
+      : DEFAULT_SCHOOLS;
+    schoolEl.innerHTML = list.map(s => `<option value="${s}">${s}</option>`).join('');
+  } catch(e) {
+    schoolEl.innerHTML = DEFAULT_SCHOOLS.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+}
+loadSchools();
 
 window.login = async function() {
   const school = document.getElementById('school').value;

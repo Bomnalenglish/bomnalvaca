@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA 설정 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d4738f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="봄날단어">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
 <title>봄날 English - 관리자</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -134,6 +143,7 @@
         <div class="tab active" onclick="switchTab('words')">📚 단어장 관리</div>
         <div class="tab" onclick="switchTab('records')">📊 학생 기록</div>
         <div class="tab" onclick="switchTab('students')">👥 학생 관리</div>
+        <div class="tab" onclick="switchTab('settings')">⚙️ 설정</div>
       </div>
 
       <!-- 단어장 관리 -->
@@ -293,6 +303,24 @@ walk,걷다</code>
         </div>
         <div id="studentsList" class="empty-state">불러오는 중...</div>
       </div>
+
+      <!-- ⚙️ 설정 패널 -->
+      <div id="panel-settings" class="panel">
+        <h3 style="margin-bottom:12px;">🏫 학교 목록 관리</h3>
+        <div class="help">
+          💡 여기서 학교를 추가/삭제하면 단어장·학생 등록의 학교 선택칸에 즉시 반영돼요.
+        </div>
+
+        <!-- 학교 추가 -->
+        <div class="form-row" style="margin-top:14px;">
+          <input type="text" id="newSchoolName" placeholder="학교 이름 (예: 대성고)" maxlength="20">
+          <button class="btn btn-primary" onclick="addSchool()">➕ 학교 추가</button>
+        </div>
+
+        <!-- 현재 학교 목록 -->
+        <h3 style="margin:24px 0 12px;">현재 등록된 학교</h3>
+        <div id="schoolList" class="empty-state">불러오는 중...</div>
+      </div>
     </div>
 
     <!-- 학생 상세 페이지 모달 -->
@@ -409,7 +437,7 @@ window.checkAdmin = function() {
     sessionStorage.setItem('isAdmin', 'true');
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainScreen').style.display = 'block';
-    loadWordSets();
+    initApp(); // 학교 목록 먼저 로드 후 단어장 로드
   } else {
     alert('비밀번호가 틀렸어요!');
   }
@@ -421,7 +449,7 @@ window.logout = function() {
 if (sessionStorage.getItem('isAdmin') === 'true') {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'block';
-  setTimeout(loadWordSets, 100);
+  setTimeout(initApp, 100);
 }
 document.getElementById('adminPw').addEventListener('keydown', e => {
   if (e.key === 'Enter') window.checkAdmin();
@@ -433,10 +461,137 @@ window.switchTab = function(name) {
   event.target.classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
 
-  // 탭 전환 시 해당 데이터 자동 로드
   if (name === 'students') setTimeout(loadStudents, 50);
   else if (name === 'records') setTimeout(loadRecords, 50);
   else if (name === 'words') setTimeout(loadWordSets, 50);
+  else if (name === 'settings') setTimeout(renderSchoolList, 50);
+};
+
+// === 학교 목록 관리 ===
+// 기본 학교 목록 (Firebase에 없으면 이걸로 초기화)
+const DEFAULT_SCHOOLS = ['종촌중', '어진중', '고운중', '종촌고', '고운고', '대성고'];
+let schoolList = [];
+
+// 앱 시작 시 학교 목록 로드 → 전체 셀렉트박스 채우기
+async function initApp() {
+  await loadSchools();
+  loadWordSets();
+}
+
+async function loadSchools() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'schools'));
+    if (snap.exists() && snap.data().list?.length > 0) {
+      schoolList = snap.data().list;
+    } else {
+      // 처음이면 기본 목록으로 Firebase에 저장
+      schoolList = [...DEFAULT_SCHOOLS];
+      await setDoc(doc(db, 'settings', 'schools'), { list: schoolList });
+    }
+  } catch (err) {
+    console.warn('학교 목록 로드 실패, 기본값 사용:', err);
+    schoolList = [...DEFAULT_SCHOOLS];
+  }
+  applySchoolsToAll();
+}
+
+// 모든 학교 셀렉트박스를 현재 schoolList로 채우기
+function applySchoolsToAll() {
+  const selectIds = [
+    'newSchool',          // 단어장 추가
+    'filterSchool',       // 기록 필터
+    'newStudentSchool',   // 학생 등록
+    'studentFilterSchool' // 학생 필터
+  ];
+  const options = schoolList.map(s => `<option value="${s}">${s}</option>`).join('');
+  const allOptions = `<option value="">전체 학교</option>` + options;
+
+  selectIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isFilter = id.includes('filter') || id === 'filterSchool';
+    el.innerHTML = isFilter ? allOptions : options;
+  });
+}
+
+// 학교 목록 화면에 렌더링
+function renderSchoolList() {
+  const listEl = document.getElementById('schoolList');
+  if (!listEl) return;
+  if (schoolList.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">등록된 학교가 없어요.</div>';
+    return;
+  }
+  listEl.className = '';
+  listEl.innerHTML = `
+    <table>
+      <thead><tr><th>학교 이름</th><th>단어장 수</th><th></th></tr></thead>
+      <tbody>
+        ${schoolList.map(s => `
+          <tr>
+            <td><strong>${s}</strong></td>
+            <td id="schoolCount_${s}">-</td>
+            <td>
+              <button class="btn btn-danger btn-sm"
+                onclick="removeSchool('${s}')">삭제</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  // 학교별 단어장 수 비동기로 채우기
+  countWordSetsBySchool();
+}
+
+async function countWordSetsBySchool() {
+  try {
+    const snap = await getDocs(collection(db, 'wordSets'));
+    const counts = {};
+    snap.forEach(d => {
+      const s = d.data().school;
+      if (s) counts[s] = (counts[s] || 0) + 1;
+    });
+    schoolList.forEach(s => {
+      const el = document.getElementById(`schoolCount_${s}`);
+      if (el) el.textContent = `${counts[s] || 0}개`;
+    });
+  } catch(e) {}
+}
+
+window.addSchool = async function() {
+  const name = document.getElementById('newSchoolName').value.trim();
+  if (!name) {
+    alert('학교 이름을 입력해주세요!');
+    return;
+  }
+  if (schoolList.includes(name)) {
+    alert(`"${name}"은 이미 등록된 학교예요!`);
+    return;
+  }
+  schoolList.push(name);
+  try {
+    await setDoc(doc(db, 'settings', 'schools'), { list: schoolList });
+    document.getElementById('newSchoolName').value = '';
+    applySchoolsToAll();
+    renderSchoolList();
+    alert(`✅ "${name}" 추가 완료!`);
+  } catch (err) {
+    schoolList.pop(); // 실패 시 롤백
+    alert('저장 실패: ' + err.message);
+  }
+};
+
+window.removeSchool = async function(name) {
+  if (!confirm(`"${name}"을 삭제할까요?\n(기존 단어장·학생 데이터는 유지됩니다)`)) return;
+  schoolList = schoolList.filter(s => s !== name);
+  try {
+    await setDoc(doc(db, 'settings', 'schools'), { list: schoolList });
+    applySchoolsToAll();
+    renderSchoolList();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
 };
 
 // === 단어장 관리 ===
@@ -488,7 +643,7 @@ window.bulkAddWordSets = async function() {
     return;
   }
 
-  const validSchools = ['종촌중', '어진중', '고운중', '종촌고'];
+  const validSchools = schoolList.length > 0 ? schoolList : DEFAULT_SCHOOLS;
 
   // === 로 단어장 분리
   const blocks = raw.split(/^===\s*$/m).map(b => b.trim()).filter(b => b);
@@ -775,7 +930,7 @@ window.bulkAddStudents = async function() {
   }
 
   const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-  const validSchools = ['종촌중', '어진중', '고운중', '종촌고'];
+  const validSchools = schoolList.length > 0 ? schoolList : DEFAULT_SCHOOLS;
   const toAdd = [];
   const errors = [];
 
@@ -1216,6 +1371,15 @@ document.querySelectorAll('.tab').forEach((tab, idx) => {
     });
   }
 });
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] 서비스 워커 등록:', reg.scope))
+      .catch(err => console.warn('[PWA] 등록 실패:', err));
+  });
+}
 </script>
 </body>
 </html>
