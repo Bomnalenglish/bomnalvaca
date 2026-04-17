@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA 설정 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d4738f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="봄날단어">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
 <title>봄날 English - 영단어 학습</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -76,6 +85,34 @@
   }
   .admin-link a { color: #d4738f; text-decoration: none; }
   .loading { text-align: center; color: #9e7a87; margin-top: 12px; }
+
+  /* 홈화면 설치 배너 */
+  .install-banner {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: white; border-radius: 16px; padding: 14px 20px;
+    box-shadow: 0 8px 30px rgba(212,115,143,0.25);
+    display: flex; align-items: center; gap: 12px;
+    max-width: 340px; width: calc(100% - 40px);
+    border: 1.5px solid #f2d4dc; z-index: 999;
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateX(-50%) translateY(80px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+  .install-banner .icon { font-size: 28px; flex-shrink: 0; }
+  .install-banner .text { flex: 1; }
+  .install-banner .text strong { display: block; font-size: 13px; color: #5c3d47; }
+  .install-banner .text span { font-size: 11px; color: #9e7a87; }
+  .install-banner .install-btn {
+    padding: 8px 14px; background: linear-gradient(135deg, #f2b8c6, #d4738f);
+    color: white; border: none; border-radius: 10px; font-size: 12px;
+    font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .install-banner .close-btn {
+    padding: 4px; background: none; border: none;
+    cursor: pointer; color: #9e7a87; font-size: 18px; flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -118,6 +155,17 @@
     <div class="admin-link">
       <a href="admin.html">선생님 관리자 페이지 →</a>
     </div>
+  </div>
+
+  <!-- 홈화면 설치 배너 (안드로이드에서 자동 표시) -->
+  <div class="install-banner" id="installBanner" style="display:none;">
+    <div class="icon">📲</div>
+    <div class="text">
+      <strong>앱으로 설치하기</strong>
+      <span>홈 화면에 추가하면 더 편해요!</span>
+    </div>
+    <button class="install-btn" id="installBtn">설치</button>
+    <button class="close-btn" onclick="document.getElementById('installBanner').style.display='none'">×</button>
   </div>
 
 <script type="module">
@@ -185,6 +233,40 @@ function saveSessionAndGo(studentId, name, school, grade) {
 document.getElementById('password').addEventListener('keydown', e => {
   if (e.key === 'Enter') window.login();
 });
+</script>
+<script>
+// 홈화면 설치 배너 (안드로이드 Chrome에서 자동 발동)
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // 3초 후 배너 표시
+  setTimeout(() => {
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'flex';
+  }, 3000);
+});
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('[PWA] 설치 결과:', outcome);
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+// 이미 설치된 경우 배너 숨기기
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').style.display = 'none';
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] 서비스 워커 등록:', reg.scope))
+      .catch(err => console.warn('[PWA] 등록 실패:', err));
+  });
+}
 </script>
 </body>
 </html>
