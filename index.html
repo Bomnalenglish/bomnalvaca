@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>봄날 English - 영단어 학습</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: white;
+    border-radius: 24px;
+    padding: 40px 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    width: 100%;
+    max-width: 400px;
+  }
+  .logo { text-align: center; margin-bottom: 28px; }
+  .logo h1 { font-size: 28px; color: #5c3d47; margin-bottom: 6px; }
+  .logo p { color: #9e7a87; font-size: 14px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    color: #5c3d47;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #f2d4dc;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: border 0.2s;
+    color: #5c3d47;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #f2b8c6;
+  }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #f2b8c6 0%, #d4738f 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.1s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .error {
+    color: #d63031;
+    font-size: 13px;
+    margin-top: 12px;
+    text-align: center;
+    min-height: 18px;
+  }
+  .admin-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+  }
+  .admin-link a { color: #d4738f; text-decoration: none; }
+  .loading { text-align: center; color: #9e7a87; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="logo">
+      <!-- 로고 이미지 자리: 나중에 이미지 받으면 아래 주석 해제 후 src 경로만 바꾸면 됩니다 -->
+      <!-- <img src="logo.png" alt="봄날 English" style="height:64px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;"> -->
+      <div style="font-size:40px;margin-bottom:4px;">🌸</div>
+      <h1>봄날 English</h1>
+      <p style="font-size:15px;color:#d4738f;font-weight:600;margin-top:2px;">영단어 학습 시스템</p>
+      <p style="margin-top:6px;">로그인 후 단어 시험에 응시하세요</p>
+    </div>
+    <div class="form-group">
+      <label>학교</label>
+      <select id="school">
+        <option value="종촌중">종촌중</option>
+        <option value="어진중">어진중</option>
+        <option value="고운중">고운중</option>
+        <option value="종촌고">종촌고</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>학년</label>
+      <select id="grade">
+        <option value="1">1학년</option>
+        <option value="2">2학년</option>
+        <option value="3">3학년</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>이름</label>
+      <input type="text" id="name" placeholder="홍길동" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>비밀번호</label>
+      <input type="password" id="password" placeholder="4자리 숫자" maxlength="4" autocomplete="off">
+    </div>
+    <button class="btn" onclick="login()">로그인</button>
+    <div class="error" id="error"></div>
+    <div class="admin-link">
+      <a href="admin.html">선생님 관리자 페이지 →</a>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCxS524S8KAaF87DomPtl9sJdF-eqes404",
+  authDomain: "bomnalvaca.firebaseapp.com",
+  projectId: "bomnalvaca",
+  storageBucket: "bomnalvaca.firebasestorage.app",
+  messagingSenderId: "115868052300",
+  appId: "1:115868052300:web:765c08867b6f1ce0987de9",
+  measurementId: "G-X0ZM11LV5K"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.login = async function() {
+  const school = document.getElementById('school').value;
+  const grade = document.getElementById('grade').value;
+  const name = document.getElementById('name').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const errorEl = document.getElementById('error');
+
+  errorEl.textContent = '';
+
+  if (!name || !password) {
+    errorEl.textContent = '이름과 비밀번호를 모두 입력해주세요.';
+    return;
+  }
+
+  const studentId = `${name}_${school}${grade}`;
+  errorEl.textContent = '확인 중...';
+
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentSnap = await getDoc(studentRef);
+
+    if (!studentSnap.exists()) {
+      errorEl.innerHTML = '등록되지 않은 학생이에요.<br>선생님께 ID 등록을 요청해주세요!';
+      return;
+    }
+    const data = studentSnap.data();
+    if (data.password !== password) {
+      errorEl.textContent = '비밀번호가 일치하지 않습니다.';
+      return;
+    }
+    saveSessionAndGo(studentId, name, school, grade);
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = '오류가 발생했습니다: ' + err.message;
+  }
+};
+
+function saveSessionAndGo(studentId, name, school, grade) {
+  sessionStorage.setItem('student', JSON.stringify({
+    id: studentId, name, school, grade: parseInt(grade)
+  }));
+  location.href = 'select.html';
+}
+
+// 엔터키로 로그인
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.login();
+});
+</script>
+</body>
+</html>

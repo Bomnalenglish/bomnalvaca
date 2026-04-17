@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>봄날 영단어 - 내 기록</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+    background: #fdf6f0; min-height: 100vh; padding: 20px;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header {
+    background: white; border-radius: 20px; padding: 24px;
+    margin-bottom: 16px; display: flex; justify-content: space-between;
+    align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .header h2 { color: #5c3d47; font-size: 20px; }
+  .header p { color: #9e7a87; font-size: 13px; margin-top: 4px; }
+  .back-btn {
+    padding: 8px 16px; background: #fdf6f0; border: none;
+    border-radius: 10px; cursor: pointer; color: #9e7a87; font-size: 13px;
+    text-decoration: none;
+  }
+  .tabs {
+    background: white; border-radius: 16px; padding: 6px;
+    margin-bottom: 16px; display: flex; gap: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .tab {
+    flex: 1; padding: 12px; text-align: center; cursor: pointer;
+    border-radius: 12px; font-size: 14px; font-weight: 600; color: #9e7a87;
+    transition: all 0.15s;
+  }
+  .tab.active { background: linear-gradient(135deg, #f2b8c6, #d4738f); color: white; }
+  .panel {
+    background: white; border-radius: 16px; padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: none;
+    margin-bottom: 16px;
+  }
+  .panel.active { display: block; }
+  .panel h3 { font-size: 16px; color: #5c3d47; margin-bottom: 14px; }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: linear-gradient(135deg, #fff0f4, #fde0e8);
+    border-radius: 12px; padding: 16px 12px; text-align: center;
+  }
+  .stat-card.gold { background: linear-gradient(135deg, #ffeaa7, #f2b8c6); }
+  .stat-card .n { font-size: 22px; font-weight: 700; color: #5c3d47; }
+  .stat-card .l { font-size: 11px; color: #9e7a87; margin-top: 4px; }
+
+  .record-item {
+    padding: 14px; background: #fff5f7; border-radius: 12px;
+    margin-bottom: 8px; display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  .record-item .info .title { font-weight: 600; font-size: 14px; color: #5c3d47; }
+  .record-item .info .date { font-size: 11px; color: #9e7a87; margin-top: 2px; }
+  .record-item .right { text-align: right; }
+  .record-item .acc { font-size: 22px; font-weight: 700; }
+  .record-item .acc.good { color: #00733b; }
+  .record-item .acc.warn { color: #c2567a; }
+  .record-item .acc.bad { color: #d63031; }
+  .record-item .meta { font-size: 11px; color: #9e7a87; margin-top: 2px; }
+
+  .ranking-item {
+    padding: 14px; background: #fff5f7; border-radius: 12px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+  }
+  .ranking-item.me { background: linear-gradient(135deg, #fff0f4, #fde0e8); border: 2px solid #f2b8c6; }
+  .ranking-item .rank {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+    background: #fdf6f0; color: #9e7a87;
+  }
+  .ranking-item .rank.top1 { background: #ffd700; color: white; }
+  .ranking-item .rank.top2 { background: #c0c0c0; color: white; }
+  .ranking-item .rank.top3 { background: #cd7f32; color: white; }
+  .ranking-item .info { flex: 1; }
+  .ranking-item .name { font-weight: 600; font-size: 14px; color: #5c3d47; }
+  .ranking-item .stats { font-size: 12px; color: #9e7a87; margin-top: 2px; }
+  .ranking-item .score { font-size: 18px; font-weight: 700; color: #d4738f; }
+  .ranking-item .me-badge {
+    background: #f2b8c6; color: white; font-size: 10px;
+    padding: 2px 6px; border-radius: 6px; margin-left: 6px;
+  }
+
+  .weak-words { display: flex; flex-wrap: wrap; gap: 6px; }
+  .weak-word {
+    padding: 6px 12px; background: #ffe0e0; color: #8b0000;
+    border-radius: 8px; font-size: 13px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .weak-word:hover { background: #ffcfcf; }
+  .weak-word .count {
+    background: #d63031; color: white; padding: 1px 6px;
+    border-radius: 6px; margin-left: 4px; font-size: 10px;
+  }
+
+  .ranking-info {
+    background: #fff0f4; padding: 12px; border-radius: 10px;
+    font-size: 12px; color: #c2567a; margin-bottom: 12px;
+    border-left: 3px solid #f2b8c6;
+  }
+
+  .empty {
+    text-align: center; padding: 40px 20px; color: #9e7a87; font-size: 14px;
+  }
+  .loading { text-align: center; padding: 30px; color: #9e7a87; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h2 id="greeting">안녕하세요!</h2>
+        <p id="info"></p>
+      </div>
+      <a href="select.html" class="back-btn">← 단어장 목록</a>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('mystats', this)">📊 내 기록</div>
+      <div class="tab" onclick="switchTab('ranking', this)">🏆 랭킹</div>
+      <div class="tab" onclick="switchTab('weak', this)">📝 복습</div>
+    </div>
+
+    <div id="panel-mystats" class="panel active">
+      <h3>📊 나의 학습 통계</h3>
+      <div id="myStatsContent" class="loading">불러오는 중...</div>
+    </div>
+
+    <div id="panel-ranking" class="panel">
+      <h3>🏆 우리 학년 랭킹</h3>
+      <div class="ranking-info">
+        💡 같은 학교·학년 친구들과 비교한 점수예요. 평균 정답률 기준으로 순위가 매겨져요. (3회 이상 응시 시)
+      </div>
+      <div id="rankingContent" class="loading">불러오는 중...</div>
+    </div>
+
+    <div id="panel-weak" class="panel">
+      <h3>📝 자주 틀린 단어 - 꼭 외워봐요!</h3>
+      <div id="weakContent" class="loading">불러오는 중...</div>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCxS524S8KAaF87DomPtl9sJdF-eqes404",
+  authDomain: "bomnalvaca.firebaseapp.com",
+  projectId: "bomnalvaca",
+  storageBucket: "bomnalvaca.firebasestorage.app",
+  messagingSenderId: "115868052300",
+  appId: "1:115868052300:web:765c08867b6f1ce0987de9"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const student = JSON.parse(sessionStorage.getItem('student') || 'null');
+if (!student) location.href = 'index.html';
+
+document.getElementById('greeting').textContent = `${student.name}님의 페이지 🌸`;
+document.getElementById('info').textContent = `${student.school} ${student.grade}학년`;
+
+let myRecords = [];
+
+window.switchTab = function(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+
+  if (name === 'ranking' && !window._rankingLoaded) loadRanking();
+  if (name === 'weak' && !window._weakLoaded) loadWeak();
+};
+
+async function loadMyStats() {
+  const container = document.getElementById('myStatsContent');
+  try {
+    const q = query(collection(db, 'records'), where('studentId', '==', student.id));
+    const snap = await getDocs(q);
+    myRecords = [];
+    snap.forEach(d => myRecords.push({ id: d.id, ...d.data() }));
+    myRecords.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+
+    if (myRecords.length === 0) {
+      container.innerHTML = '<div class="empty">아직 시험 기록이 없어요!<br>단어장을 선택해서 시험을 봐주세요 🌸</div>';
+      return;
+    }
+
+    const total = myRecords.length;
+    const avgAcc = Math.round(myRecords.reduce((s, r) => s + (r.accuracy || 0), 0) / total);
+    const bestAcc = Math.max(...myRecords.map(r => r.accuracy || 0));
+    const perfectCount = myRecords.filter(r => r.accuracy === 100).length;
+    const totalWords = myRecords.reduce((s, r) => s + (r.totalWords || 0), 0);
+
+    let title = '🌱 새싹';
+    if (total >= 50 && avgAcc >= 90) title = '👑 마스터';
+    else if (total >= 30 && avgAcc >= 85) title = '🏆 챔피언';
+    else if (total >= 20 && avgAcc >= 80) title = '⭐ 우등생';
+    else if (total >= 10 && avgAcc >= 70) title = '🌸 새싹';
+    else if (total >= 5) title = '🌱 도전자';
+
+    container.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card gold"><div class="n" style="font-size:16px;">${title}</div><div class="l">현재 등급</div></div>
+        <div class="stat-card"><div class="n">${total}</div><div class="l">시험 횟수</div></div>
+        <div class="stat-card"><div class="n">${avgAcc}%</div><div class="l">평균 정답률</div></div>
+        <div class="stat-card"><div class="n">${bestAcc}%</div><div class="l">최고 점수</div></div>
+        <div class="stat-card"><div class="n">${perfectCount}</div><div class="l">만점 횟수</div></div>
+        <div class="stat-card"><div class="n">${totalWords}</div><div class="l">학습 단어수</div></div>
+      </div>
+
+      <h3 style="margin:20px 0 12px;">📋 최근 시험 기록</h3>
+      <div>
+        ${myRecords.slice(0, 10).map(r => {
+          const acc = r.accuracy || 0;
+          const accClass = acc >= 90 ? 'good' : acc >= 70 ? 'warn' : 'bad';
+          const date = (r.completedAt || '').replace('T',' ').slice(0,16);
+          return `
+            <div class="record-item">
+              <div class="info">
+                <div class="title">${r.wordSetTitle}</div>
+                <div class="date">${date}</div>
+              </div>
+              <div class="right">
+                <div class="acc ${accClass}">${acc}%</div>
+                <div class="meta">${r.correctFirst}/${r.totalWords} · ${r.rounds}회차</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = '오류: ' + err.message;
+  }
+}
+
+async function loadRanking() {
+  const container = document.getElementById('rankingContent');
+  try {
+    const snap = await getDocs(collection(db, 'records'));
+    const byStudent = {};
+    snap.forEach(d => {
+      const r = d.data();
+      if (r.studentSchool !== student.school || r.studentGrade !== student.grade) return;
+      const key = r.studentId || `${r.studentName}_${r.studentSchool}${r.studentGrade}`;
+      if (!byStudent[key]) {
+        byStudent[key] = { name: r.studentName, count: 0, accSum: 0, perfect: 0 };
+      }
+      byStudent[key].count++;
+      byStudent[key].accSum += (r.accuracy || 0);
+      if (r.accuracy === 100) byStudent[key].perfect++;
+    });
+
+    const ranking = Object.entries(byStudent)
+      .filter(([_, s]) => s.count >= 3)
+      .map(([id, s]) => ({
+        id,
+        name: s.name,
+        avgAcc: Math.round(s.accSum / s.count),
+        count: s.count,
+        perfect: s.perfect
+      }))
+      .sort((a, b) => {
+        if (b.avgAcc !== a.avgAcc) return b.avgAcc - a.avgAcc;
+        if (b.perfect !== a.perfect) return b.perfect - a.perfect;
+        return b.count - a.count;
+      });
+
+    if (ranking.length === 0) {
+      container.innerHTML = `
+        <div class="empty">
+          아직 랭킹에 오른 친구가 없어요.<br>
+          <strong>3회 이상 시험</strong>을 봐야 랭킹에 들어가요!
+        </div>
+      `;
+      return;
+    }
+
+    const myRank = ranking.findIndex(r => r.id === student.id) + 1;
+    const myRankInfo = myRank > 0
+      ? `<div class="ranking-info">🎯 나의 순위: <strong>${myRank}위</strong> / 전체 ${ranking.length}명</div>`
+      : `<div class="ranking-info">⚠️ 아직 3회 미만이라 랭킹에 들어가지 않았어요. 더 많이 응시해보세요!</div>`;
+
+    container.innerHTML = myRankInfo + ranking.slice(0, 20).map((r, i) => {
+      const rank = i + 1;
+      let rankClass = '';
+      if (rank === 1) rankClass = 'top1';
+      else if (rank === 2) rankClass = 'top2';
+      else if (rank === 3) rankClass = 'top3';
+      const isMe = r.id === student.id;
+      return `
+        <div class="ranking-item ${isMe ? 'me' : ''}">
+          <div class="rank ${rankClass}">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}</div>
+          <div class="info">
+            <div class="name">${r.name}${isMe ? '<span class="me-badge">나</span>' : ''}</div>
+            <div class="stats">${r.count}회 응시 · 만점 ${r.perfect}회</div>
+          </div>
+          <div class="score">${r.avgAcc}%</div>
+        </div>
+      `;
+    }).join('');
+    window._rankingLoaded = true;
+  } catch (err) {
+    container.innerHTML = '오류: ' + err.message;
+  }
+}
+
+async function loadWeak() {
+  const container = document.getElementById('weakContent');
+  try {
+    if (myRecords.length === 0) {
+      const q = query(collection(db, 'records'), where('studentId', '==', student.id));
+      const snap = await getDocs(q);
+      myRecords = [];
+      snap.forEach(d => myRecords.push({ id: d.id, ...d.data() }));
+    }
+
+    if (myRecords.length === 0) {
+      container.innerHTML = '<div class="empty">아직 시험 기록이 없어요!</div>';
+      return;
+    }
+
+    const wrongCount = {};
+    myRecords.forEach(r => {
+      (r.wrongWords || []).forEach(w => {
+        wrongCount[w] = (wrongCount[w] || 0) + 1;
+      });
+    });
+
+    const sorted = Object.entries(wrongCount).sort((a, b) => b[1] - a[1]).slice(0, 30);
+    if (sorted.length === 0) {
+      container.innerHTML = `
+        <div class="empty" style="color:#00733b;">
+          🎉 멋져요!<br>1차 시도에서 틀린 단어가 하나도 없어요!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="ranking-info">
+        💡 클릭하면 발음을 들을 수 있어요. 자주 틀린 단어부터 외워봐요!
+      </div>
+      <div class="weak-words">
+        ${sorted.map(([word, count]) => `
+          <div class="weak-word" onclick="playWord('${word.replace(/'/g, "\\'")}')">
+            🔊 ${word}<span class="count">${count}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    window._weakLoaded = true;
+  } catch (err) {
+    container.innerHTML = '오류: ' + err.message;
+  }
+}
+
+window.playWord = function(text) {
+  const englishOnly = text.split('(')[0].trim();
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(englishOnly)}&tl=en&client=tw-ob`;
+  const audio = new Audio(url);
+  audio.play().catch(err => {
+    if (window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance(englishOnly);
+      u.lang = 'en-US';
+      window.speechSynthesis.speak(u);
+    }
+  });
+};
+
+loadMyStats();
+</script>
+</body>
+</html>

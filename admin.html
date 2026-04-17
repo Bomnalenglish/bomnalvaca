@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>봄날 English - 관리자</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+    background: #fdf6f0; min-height: 100vh; padding: 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .header {
+    background: white; border-radius: 16px; padding: 20px 24px;
+    margin-bottom: 16px; display: flex; justify-content: space-between;
+    align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .header h1 { font-size: 22px; color: #5c3d47; }
+  .header p { font-size: 12px; color: #9e7a87; }
+  .tabs {
+    background: white; border-radius: 16px; padding: 6px;
+    margin-bottom: 16px; display: flex; gap: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .tab {
+    flex: 1; padding: 12px; text-align: center; cursor: pointer;
+    border-radius: 12px; font-size: 14px; font-weight: 600; color: #9e7a87;
+    transition: all 0.15s;
+  }
+  .tab.active { background: linear-gradient(135deg, #f2b8c6, #d4738f); color: white; }
+  .panel {
+    background: white; border-radius: 16px; padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04); display: none;
+  }
+  .panel.active { display: block; }
+
+  .form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .form-row select, .form-row input {
+    padding: 10px 12px; border: 2px solid #f2d4dc; border-radius: 10px;
+    font-size: 14px; flex: 1; min-width: 100px;
+  }
+  .form-row select:focus, .form-row input:focus {
+    outline: none; border-color: #f2b8c6;
+  }
+  textarea {
+    width: 100%; padding: 14px; border: 2px solid #f2d4dc;
+    border-radius: 12px; font-size: 14px; font-family: inherit;
+    resize: vertical; min-height: 200px;
+  }
+  textarea:focus { outline: none; border-color: #f2b8c6; }
+  .help {
+    font-size: 12px; color: #9e7a87; background: #fff0f4;
+    padding: 10px 12px; border-radius: 8px; margin: 8px 0 12px;
+    border-left: 3px solid #f2b8c6;
+  }
+  .btn {
+    padding: 12px 20px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn-primary { background: linear-gradient(135deg, #f2b8c6, #d4738f); color: white; }
+  .btn-secondary { background: #fdf6f0; color: #5c3d47; }
+  .btn-danger { background: #ffe0e0; color: #d63031; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 12px;
+  }
+  th, td {
+    padding: 10px 12px; text-align: left; font-size: 13px;
+    border-bottom: 1px solid #f5e8ec;
+  }
+  th { color: #9e7a87; font-weight: 600; background: #fff5f7; }
+  td .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill.good { background: #d4f5e9; color: #00733b; }
+  .pill.warn { background: #fff0f4; color: #c2567a; }
+  .pill.bad  { background: #ffe0e0; color: #8b0000; }
+
+  .login-screen {
+    max-width: 400px; margin: 100px auto; background: white;
+    padding: 32px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  .login-screen h2 { margin-bottom: 16px; color: #5c3d47; }
+  .login-screen input {
+    width: 100%; padding: 14px; border: 2px solid #f2d4dc;
+    border-radius: 12px; font-size: 15px; margin-bottom: 12px;
+  }
+  .login-screen button {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #f2b8c6, #d4738f);
+    color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+  }
+
+  .stats-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: linear-gradient(135deg, #fff0f4, #fde0e8);
+    border-radius: 12px; padding: 16px; text-align: center;
+  }
+  .stat-card .n { font-size: 24px; font-weight: 700; color: #5c3d47; }
+  .stat-card .l { font-size: 12px; color: #9e7a87; margin-top: 4px; }
+  .empty-state {
+    text-align: center; padding: 40px; color: #9e7a87; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <!-- 비밀번호 보호 -->
+  <div id="loginScreen" class="login-screen">
+    <h2>🔐 관리자 로그인</h2>
+    <input type="password" id="adminPw" placeholder="관리자 비밀번호" autocomplete="off">
+    <button onclick="checkAdmin()">로그인</button>
+    <p style="font-size:12px;color:#636e72;margin-top:12px;text-align:center;">
+      기본 비밀번호: <strong>bomnal2026</strong> (admin.html 파일에서 변경 가능)
+    </p>
+  </div>
+
+  <div id="mainScreen" style="display:none;">
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>🌸 봄날 English 관리자</h1>
+          <p>영단어 학습 시스템 · 단어장·학생·기록 관리</p>
+        </div>
+        <button class="btn btn-secondary" onclick="logout()">로그아웃</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('words')">📚 단어장 관리</div>
+        <div class="tab" onclick="switchTab('records')">📊 학생 기록</div>
+        <div class="tab" onclick="switchTab('students')">👥 학생 관리</div>
+      </div>
+
+      <!-- 단어장 관리 -->
+      <div id="panel-words" class="panel active">
+        <h3 style="margin-bottom:12px;">새 단어장 추가</h3>
+        <div class="form-row">
+          <input type="text" id="newTitle" placeholder="단어장 제목 (예: 종촌중3 1과)">
+          <select id="newSchool">
+            <option value="종촌중">종촌중</option>
+            <option value="어진중">어진중</option>
+            <option value="고운중">고운중</option>
+            <option value="종촌고">종촌고</option>
+          </select>
+          <select id="newGrade">
+            <option value="1">1학년</option>
+            <option value="2">2학년</option>
+            <option value="3">3학년</option>
+          </select>
+        </div>
+        <div class="help">
+          💡 <strong>단어 입력 방법</strong>: 한 줄에 하나씩, <code>영어,한국어</code> 형식으로 입력하세요.<br>
+          예: <code>apple,사과</code> 또는 <code>apple, 사과</code> 또는 <code>apple = 사과</code> 모두 가능
+        </div>
+        <textarea id="newWords" placeholder="apple,사과
+banana,바나나
+grape,포도
+dog,강아지
+cat,고양이"></textarea>
+        <div style="margin-top:12px; display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="saveWordSet()">단어장 저장</button>
+          <button class="btn btn-secondary" onclick="loadDemoWords()">📥 시범 단어 10개 채우기</button>
+        </div>
+
+        <details style="margin-top:20px;">
+          <summary style="cursor:pointer;font-weight:600;color:#d4738f;padding:8px 0;">
+            📦 여러 단어장 한 번에 업로드 (엑셀/구글시트)
+          </summary>
+          <div style="padding:12px 0;">
+            <div class="help">
+              💡 <strong>구분자 방식</strong>: 각 단어장을 <code>===</code>로 구분하세요.<br>
+              첫 줄에 <code>제목|학교|학년</code> 형식으로 메타정보를 넣고, 그 아래에 단어들을 적어주세요.<br><br>
+              <strong>예시:</strong><br>
+              <code style="display:block;background:#fff;padding:10px;border-radius:6px;margin-top:6px;white-space:pre;font-size:11px;">종촌중3 1과|종촌중|3
+apple,사과
+banana,바나나
+grape,포도
+dog,강아지
+===
+어진중2 2과|어진중|2
+run,달리다
+jump,뛰다
+swim,수영하다
+walk,걷다</code>
+            </div>
+            <textarea id="bulkWordSets" placeholder="첫 단어장|학교|학년
+영어단어1,한국어1
+영어단어2,한국어2
+===
+두번째 단어장|학교|학년
+...
+" style="min-height:260px;"></textarea>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="bulkAddWordSets()">📥 일괄 업로드</button>
+              <button class="btn btn-secondary" onclick="loadBulkDemo()">예시 3개 채우기</button>
+            </div>
+          </div>
+        </details>
+
+        <h3 style="margin:32px 0 12px;">기존 단어장 목록</h3>
+        <div id="wordSetsList" class="empty-state">불러오는 중...</div>
+      </div>
+
+      <!-- 학생 기록 -->
+      <div id="panel-records" class="panel">
+        <div class="form-row">
+          <select id="filterSchool">
+            <option value="">전체 학교</option>
+            <option value="종촌중">종촌중</option>
+            <option value="어진중">어진중</option>
+            <option value="고운중">고운중</option>
+            <option value="종촌고">종촌고</option>
+          </select>
+          <select id="filterGrade">
+            <option value="">전체 학년</option>
+            <option value="1">1학년</option>
+            <option value="2">2학년</option>
+            <option value="3">3학년</option>
+          </select>
+          <input type="text" id="filterName" placeholder="학생 이름 검색">
+          <button class="btn btn-primary" onclick="loadRecords()">조회</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">CSV 내보내기</button>
+        </div>
+        <div id="statsSummary"></div>
+        <div id="recordsList" class="empty-state">조회 버튼을 눌러주세요</div>
+      </div>
+
+      <!-- 학생 관리 -->
+      <div id="panel-students" class="panel">
+        <h3 style="margin-bottom:12px;">➕ 신규 학생 등록</h3>
+        <div class="form-row">
+          <input type="text" id="newStudentName" placeholder="학생 이름 (예: 김민수)">
+          <select id="newStudentSchool">
+            <option value="종촌중">종촌중</option>
+            <option value="어진중">어진중</option>
+            <option value="고운중">고운중</option>
+            <option value="종촌고">종촌고</option>
+          </select>
+          <select id="newStudentGrade">
+            <option value="1">1학년</option>
+            <option value="2">2학년</option>
+            <option value="3">3학년</option>
+          </select>
+          <input type="text" id="newStudentPw" placeholder="비밀번호 (4자리)" maxlength="20">
+          <button class="btn btn-primary" onclick="addStudent()">학생 등록</button>
+        </div>
+        <div class="help">
+          💡 <strong>비밀번호 팁</strong>: 학생이 외우기 쉬운 4자리 숫자를 추천드려요 (예: 생일, 1234 등).<br>
+          💡 같은 이름의 학생이 있으면 이름 뒤에 구분 표시를 붙여주세요 (예: "김민수A", "김민수B").
+        </div>
+
+        <details style="margin-top:16px;">
+          <summary style="cursor:pointer;font-weight:600;color:#d4738f;padding:8px 0;">
+            📋 여러 명 한 번에 등록 (엑셀에서 복붙)
+          </summary>
+          <div style="padding:12px 0;">
+            <div class="help">
+              💡 한 줄에 한 명씩 입력하세요. 형식: <code>이름,학교,학년,비밀번호</code><br>
+              예: <code>김민수,종촌중,3,1234</code>
+            </div>
+            <textarea id="bulkStudents" placeholder="김민수,종촌중,3,1234
+이서연,종촌중,3,5678
+박지훈,어진중,2,1111"></textarea>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="bulkAddStudents()">📥 일괄 등록</button>
+            </div>
+          </div>
+        </details>
+
+        <h3 style="margin:32px 0 12px;">👥 등록된 학생 목록</h3>
+        <div class="form-row">
+          <select id="studentFilterSchool" onchange="loadStudents()">
+            <option value="">전체 학교</option>
+            <option value="종촌중">종촌중</option>
+            <option value="어진중">어진중</option>
+            <option value="고운중">고운중</option>
+            <option value="종촌고">종촌고</option>
+          </select>
+          <select id="studentFilterGrade" onchange="loadStudents()">
+            <option value="">전체 학년</option>
+            <option value="1">1학년</option>
+            <option value="2">2학년</option>
+            <option value="3">3학년</option>
+          </select>
+          <input type="text" id="studentSearchName" placeholder="이름 검색" oninput="loadStudents()">
+          <button class="btn btn-secondary" onclick="loadStudents()">🔄 새로고침</button>
+          <button class="btn btn-secondary" onclick="exportStudentsCSV()">📥 명단 CSV</button>
+        </div>
+        <div id="studentsList" class="empty-state">불러오는 중...</div>
+      </div>
+    </div>
+
+    <!-- 학생 상세 페이지 모달 -->
+    <div id="studentDetailModal" class="modal-overlay" style="display:none;">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeStudentDetail()">✕</button>
+        <div id="studentDetailBody">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+<style>
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 30px 15px; overflow-y: auto;
+  }
+  .modal-content {
+    background: white; border-radius: 20px; padding: 28px;
+    max-width: 900px; width: 100%; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    margin-bottom: 30px;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #fdf6f0; border: none; cursor: pointer;
+    font-size: 16px; color: #9e7a87;
+  }
+  .modal-close:hover { background: #d4738f; color: white; }
+  .detail-header {
+    display: flex; align-items: center; gap: 16px;
+    padding-bottom: 16px; border-bottom: 2px solid #fdf6f0;
+    margin-bottom: 20px;
+  }
+  .detail-avatar {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #f2b8c6, #d4738f);
+    color: white; font-size: 24px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-name { font-size: 22px; font-weight: 700; color: #5c3d47; }
+  .detail-sub { font-size: 13px; color: #9e7a87; }
+  .section-label {
+    font-size: 13px; color: #9e7a87; font-weight: 600;
+    margin: 20px 0 10px; letter-spacing: 0.3px;
+  }
+  .chart-container {
+    background: #fff5f7; border-radius: 12px; padding: 16px;
+    margin-bottom: 16px;
+  }
+  .simple-chart {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 120px; padding: 8px 0; border-bottom: 1px dashed #ccc;
+    position: relative;
+  }
+  .chart-bar {
+    flex: 1; min-width: 20px; max-width: 60px;
+    background: linear-gradient(to top, #f2b8c6, #fab1a0);
+    border-radius: 4px 4px 0 0; position: relative;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .chart-bar:hover { background: linear-gradient(to top, #d4738f, #fd79a8); }
+  .chart-bar-label {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; font-weight: 700; color: #5c3d47; white-space: nowrap;
+  }
+  .chart-bar-xlabel {
+    position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: #9e7a87; white-space: nowrap;
+  }
+  .chart-y-axis {
+    font-size: 10px; color: #999; display: flex; flex-direction: column;
+    justify-content: space-between; padding-right: 6px;
+  }
+  .weak-words {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .weak-word-tag {
+    background: #fff0f0; color: #d63031; padding: 4px 10px;
+    border-radius: 12px; font-size: 12px; font-weight: 600;
+    border: 1px solid #ffc9c9;
+  }
+  .weak-word-tag strong { color: #8b0000; }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc, getDoc,
+  query, where, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCxS524S8KAaF87DomPtl9sJdF-eqes404",
+  authDomain: "bomnalvaca.firebaseapp.com",
+  projectId: "bomnalvaca",
+  storageBucket: "bomnalvaca.firebasestorage.app",
+  messagingSenderId: "115868052300",
+  appId: "1:115868052300:web:765c08867b6f1ce0987de9"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ⭐ 관리자 비밀번호 (이 부분만 변경하세요)
+const ADMIN_PASSWORD = "bomnal2026";
+
+let currentRecords = [];
+
+window.checkAdmin = function() {
+  const pw = document.getElementById('adminPw').value;
+  if (pw === ADMIN_PASSWORD) {
+    sessionStorage.setItem('isAdmin', 'true');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
+    loadWordSets();
+  } else {
+    alert('비밀번호가 틀렸어요!');
+  }
+};
+window.logout = function() {
+  sessionStorage.removeItem('isAdmin');
+  location.reload();
+};
+if (sessionStorage.getItem('isAdmin') === 'true') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'block';
+  setTimeout(loadWordSets, 100);
+}
+document.getElementById('adminPw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.checkAdmin();
+});
+
+window.switchTab = function(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+
+  // 탭 전환 시 해당 데이터 자동 로드
+  if (name === 'students') setTimeout(loadStudents, 50);
+  else if (name === 'records') setTimeout(loadRecords, 50);
+  else if (name === 'words') setTimeout(loadWordSets, 50);
+};
+
+// === 단어장 관리 ===
+window.loadDemoWords = function() {
+  document.getElementById('newWords').value =
+`apple,사과
+banana,바나나
+grape,포도
+strawberry,딸기
+watermelon,수박
+pineapple,파인애플
+peach,복숭아
+mango,망고
+lemon,레몬
+orange,오렌지`;
+  if (!document.getElementById('newTitle').value) {
+    document.getElementById('newTitle').value = '시범 단어장 - 과일 10개';
+  }
+};
+
+window.loadBulkDemo = function() {
+  document.getElementById('bulkWordSets').value =
+`과일 단어장|종촌중|1
+apple,사과
+banana,바나나
+grape,포도
+strawberry,딸기
+watermelon,수박
+===
+동물 단어장|종촌중|1
+dog,강아지
+cat,고양이
+rabbit,토끼
+elephant,코끼리
+lion,사자
+===
+직업 단어장|종촌중|2
+teacher,선생님
+doctor,의사
+nurse,간호사
+firefighter,소방관
+police officer,경찰관`;
+};
+
+window.bulkAddWordSets = async function() {
+  const raw = document.getElementById('bulkWordSets').value.trim();
+  if (!raw) {
+    alert('업로드할 내용을 입력해주세요!');
+    return;
+  }
+
+  const validSchools = ['종촌중', '어진중', '고운중', '종촌고'];
+
+  // === 로 단어장 분리
+  const blocks = raw.split(/^===\s*$/m).map(b => b.trim()).filter(b => b);
+  const toAdd = [];
+  const errors = [];
+
+  blocks.forEach((block, blockIdx) => {
+    const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length < 2) {
+      errors.push(`단어장 ${blockIdx + 1}: 내용이 너무 짧아요`);
+      return;
+    }
+
+    // 첫 줄은 메타정보: 제목|학교|학년
+    const metaParts = lines[0].split('|').map(p => p.trim());
+    if (metaParts.length < 3) {
+      errors.push(`단어장 ${blockIdx + 1}: 첫 줄 형식이 잘못됨 (제목|학교|학년)`);
+      return;
+    }
+    const [title, school, gradeStr] = metaParts;
+    if (!validSchools.includes(school)) {
+      errors.push(`단어장 "${title}": 학교명 오류 "${school}"`);
+      return;
+    }
+    const grade = parseInt(gradeStr);
+    if (![1, 2, 3].includes(grade)) {
+      errors.push(`단어장 "${title}": 학년 오류 "${gradeStr}"`);
+      return;
+    }
+
+    // 나머지는 단어들
+    const words = [];
+    const wordErrors = [];
+    lines.slice(1).forEach((line, i) => {
+      const m = line.match(/^(.+?)\s*[,=\t]\s*(.+)$/);
+      if (m) words.push({ english: m[1].trim(), korean: m[2].trim() });
+      else wordErrors.push(`  └ ${i + 2}행: "${line}"`);
+    });
+
+    if (words.length < 4) {
+      errors.push(`단어장 "${title}": 단어가 최소 4개 이상 필요 (현재 ${words.length}개)`);
+      return;
+    }
+    if (wordErrors.length > 0) {
+      errors.push(`단어장 "${title}": 일부 단어 형식 오류\n${wordErrors.slice(0, 3).join('\n')}`);
+    }
+
+    toAdd.push({ title, school, grade, words });
+  });
+
+  if (errors.length > 0) {
+    if (!confirm(`⚠️ 일부 단어장에 문제가 있어요:\n\n${errors.slice(0, 5).join('\n\n')}\n${errors.length > 5 ? `\n...외 ${errors.length - 5}건` : ''}\n\n문제없는 ${toAdd.length}개 단어장만 저장할까요?`)) return;
+  }
+
+  if (toAdd.length === 0) {
+    alert('저장할 단어장이 없습니다.');
+    return;
+  }
+  if (!confirm(`총 ${toAdd.length}개 단어장을 저장합니다. 진행할까요?\n\n${toAdd.map(t => `• ${t.title} (${t.school}${t.grade} · ${t.words.length}개 단어)`).join('\n')}`)) return;
+
+  let success = 0, fail = 0;
+  for (const ws of toAdd) {
+    try {
+      await addDoc(collection(db, 'wordSets'), {
+        ...ws,
+        createdAt: new Date().toISOString()
+      });
+      success++;
+    } catch (e) {
+      fail++;
+      console.error('저장 실패:', ws.title, e);
+    }
+  }
+
+  alert(`📊 일괄 업로드 결과\n✅ 성공: ${success}개\n❌ 실패: ${fail}개`);
+  document.getElementById('bulkWordSets').value = '';
+  loadWordSets();
+};
+
+window.saveWordSet = async function() {
+  const title = document.getElementById('newTitle').value.trim();
+  const school = document.getElementById('newSchool').value;
+  const grade = parseInt(document.getElementById('newGrade').value);
+  const raw = document.getElementById('newWords').value.trim();
+
+  if (!title || !raw) {
+    alert('제목과 단어를 입력해주세요!');
+    return;
+  }
+
+  // 단어 파싱: "영어,한국어" / "영어, 한국어" / "영어=한국어" 모두 지원
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  const words = [];
+  const errors = [];
+  lines.forEach((line, i) => {
+    const match = line.match(/^(.+?)\s*[,=\t]\s*(.+)$/);
+    if (match) {
+      words.push({ english: match[1].trim(), korean: match[2].trim() });
+    } else {
+      errors.push(`${i + 1}행: "${line}"`);
+    }
+  });
+
+  if (errors.length > 0) {
+    if (!confirm(`다음 줄은 형식이 맞지 않아요:\n${errors.slice(0, 5).join('\n')}\n\n나머지만 저장할까요?`)) return;
+  }
+  if (words.length < 4) {
+    alert('단어가 최소 4개 이상 필요합니다 (4지선다라서)');
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'wordSets'), {
+      title, school, grade, words,
+      createdAt: new Date().toISOString()
+    });
+    alert(`✅ "${title}" 저장 완료! (단어 ${words.length}개)`);
+    document.getElementById('newTitle').value = '';
+    document.getElementById('newWords').value = '';
+    loadWordSets();
+  } catch (err) {
+    alert('저장 실패: ' + err.message);
+  }
+};
+
+async function loadWordSets() {
+  const listEl = document.getElementById('wordSetsList');
+  listEl.innerHTML = '불러오는 중...';
+  listEl.className = 'empty-state';
+  try {
+    const snap = await getDocs(collection(db, 'wordSets'));
+    if (snap.empty) {
+      listEl.innerHTML = '아직 등록된 단어장이 없어요. 위에서 추가해보세요!';
+      return;
+    }
+    const rows = [];
+    snap.forEach(d => {
+      const data = d.data();
+      rows.push(`
+        <tr>
+          <td><strong>${data.title}</strong></td>
+          <td>${data.school} ${data.grade}학년</td>
+          <td>${data.words?.length || 0}개</td>
+          <td>${(data.createdAt || '').slice(0, 10)}</td>
+          <td>
+            <button class="btn btn-danger btn-sm" onclick="deleteWordSet('${d.id}','${data.title.replace(/'/g,"\\'")}')">삭제</button>
+          </td>
+        </tr>
+      `);
+    });
+    listEl.className = '';
+    listEl.innerHTML = `
+      <table>
+        <thead><tr><th>제목</th><th>대상</th><th>단어 수</th><th>등록일</th><th></th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    listEl.innerHTML = '오류: ' + err.message;
+  }
+}
+
+window.deleteWordSet = async function(id, title) {
+  if (!confirm(`"${title}" 단어장을 정말 삭제할까요?`)) return;
+  try {
+    await deleteDoc(doc(db, 'wordSets', id));
+    loadWordSets();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+};
+
+// === 학생 기록 ===
+window.loadRecords = async function() {
+  const school = document.getElementById('filterSchool').value;
+  const grade = document.getElementById('filterGrade').value;
+  const name = document.getElementById('filterName').value.trim();
+  const listEl = document.getElementById('recordsList');
+  listEl.innerHTML = '조회 중...';
+  listEl.className = 'empty-state';
+
+  try {
+    const snap = await getDocs(collection(db, 'records'));
+    let records = [];
+    snap.forEach(d => records.push({ id: d.id, ...d.data() }));
+
+    // 필터링
+    if (school) records = records.filter(r => r.studentSchool === school);
+    if (grade) records = records.filter(r => r.studentGrade === parseInt(grade));
+    if (name) records = records.filter(r => r.studentName?.includes(name));
+
+    // 최신순 정렬
+    records.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+    currentRecords = records;
+
+    // 통계 요약
+    const totalAttempts = records.length;
+    const avgAccuracy = records.length
+      ? Math.round(records.reduce((s, r) => s + (r.accuracy || 0), 0) / records.length)
+      : 0;
+    const uniqueStudents = new Set(records.map(r => r.studentId)).size;
+
+    document.getElementById('statsSummary').innerHTML = `
+      <div class="stats-summary">
+        <div class="stat-card"><div class="n">${totalAttempts}</div><div class="l">총 시험 횟수</div></div>
+        <div class="stat-card"><div class="n">${uniqueStudents}</div><div class="l">참여 학생 수</div></div>
+        <div class="stat-card"><div class="n">${avgAccuracy}%</div><div class="l">평균 1차 정답률</div></div>
+      </div>
+    `;
+
+    if (records.length === 0) {
+      listEl.innerHTML = '조회 결과가 없습니다.';
+      return;
+    }
+
+    const rows = records.map(r => {
+      const date = (r.completedAt || '').replace('T', ' ').slice(0, 16);
+      const acc = r.accuracy || 0;
+      const pillClass = acc >= 90 ? 'good' : acc >= 70 ? 'warn' : 'bad';
+      const min = Math.floor((r.totalTimeSec || 0) / 60);
+      const sec = (r.totalTimeSec || 0) % 60;
+      return `
+        <tr>
+          <td>${date}</td>
+          <td><strong>${r.studentName}</strong><br><span style="font-size:11px;color:#999;">${r.studentSchool} ${r.studentGrade}</span></td>
+          <td>${r.wordSetTitle}</td>
+          <td><span class="pill ${pillClass}">${acc}%</span></td>
+          <td>${r.correctFirst}/${r.totalWords}</td>
+          <td>${r.rounds}회차</td>
+          <td>${min}:${String(sec).padStart(2,'0')}</td>
+          <td style="font-size:11px;color:#d63031;">${(r.wrongWords || []).join(', ') || '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    listEl.className = '';
+    listEl.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>일시</th><th>학생</th><th>단어장</th><th>정답률</th><th>1차정답</th><th>회차</th><th>시간</th><th>오답</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    listEl.innerHTML = '오류: ' + err.message;
+  }
+};
+
+window.exportCSV = function() {
+  if (currentRecords.length === 0) {
+    alert('먼저 조회를 해주세요!');
+    return;
+  }
+  const headers = ['일시','학생','학교','학년','단어장','정답률','1차정답수','총단어수','회차','소요시간(초)','오답'];
+  const rows = currentRecords.map(r => [
+    (r.completedAt || '').replace('T',' ').slice(0,16),
+    r.studentName, r.studentSchool, r.studentGrade,
+    r.wordSetTitle, r.accuracy + '%',
+    r.correctFirst, r.totalWords, r.rounds,
+    r.totalTimeSec, (r.wrongWords || []).join(' / ')
+  ]);
+  const csv = '\uFEFF' + [headers, ...rows].map(row =>
+    row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `BomnalEnglish_기록_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+// === 학생 관리 ===
+
+let recordCountByStudent = {}; // 학생별 시험 횟수 캐시
+
+// 일괄 학생 등록
+window.bulkAddStudents = async function() {
+  const raw = document.getElementById('bulkStudents').value.trim();
+  if (!raw) {
+    alert('학생 정보를 입력해주세요!');
+    return;
+  }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  const validSchools = ['종촌중', '어진중', '고운중', '종촌고'];
+  const toAdd = [];
+  const errors = [];
+
+  lines.forEach((line, i) => {
+    const parts = line.split(',').map(p => p.trim());
+    if (parts.length < 4) {
+      errors.push(`${i + 1}행: 형식 오류 - "${line}"`);
+      return;
+    }
+    const [name, school, gradeStr, password] = parts;
+    if (!name || !password) {
+      errors.push(`${i + 1}행: 이름·비밀번호 누락`);
+      return;
+    }
+    if (!validSchools.includes(school)) {
+      errors.push(`${i + 1}행: 학교명 오류 "${school}"`);
+      return;
+    }
+    const grade = parseInt(gradeStr);
+    if (![1, 2, 3].includes(grade)) {
+      errors.push(`${i + 1}행: 학년 오류 "${gradeStr}"`);
+      return;
+    }
+    if (password.length < 4) {
+      errors.push(`${i + 1}행: 비밀번호는 4자리 이상`);
+      return;
+    }
+    toAdd.push({ name, school, grade, password });
+  });
+
+  if (errors.length > 0) {
+    if (!confirm(`다음 줄에 문제가 있어요:\n\n${errors.slice(0, 5).join('\n')}\n${errors.length > 5 ? `...외 ${errors.length - 5}건` : ''}\n\n나머지 ${toAdd.length}명만 등록할까요?`)) return;
+  }
+  if (toAdd.length === 0) {
+    alert('등록할 학생이 없습니다.');
+    return;
+  }
+  if (!confirm(`총 ${toAdd.length}명 등록합니다. 진행할까요?`)) return;
+
+  let success = 0, dup = 0, fail = 0;
+  for (const s of toAdd) {
+    const studentId = `${s.name}_${s.school}${s.grade}`;
+    try {
+      const existing = await getDoc(doc(db, 'students', studentId));
+      if (existing.exists()) { dup++; continue; }
+      await setDoc(doc(db, 'students', studentId), {
+        ...s,
+        createdAt: new Date().toISOString()
+      });
+      success++;
+    } catch (e) {
+      fail++;
+      console.error('등록 실패:', studentId, e);
+    }
+  }
+
+  alert(`📊 일괄 등록 결과
+✅ 성공: ${success}명
+⚠️ 중복(건너뜀): ${dup}명
+❌ 실패: ${fail}명`);
+  document.getElementById('bulkStudents').value = '';
+  loadStudents();
+};
+
+// 신규 학생 등록
+window.addStudent = async function() {
+  const name = document.getElementById('newStudentName').value.trim();
+  const school = document.getElementById('newStudentSchool').value;
+  const grade = parseInt(document.getElementById('newStudentGrade').value);
+  const password = document.getElementById('newStudentPw').value.trim();
+
+  if (!name || !password) {
+    alert('이름과 비밀번호를 모두 입력해주세요!');
+    return;
+  }
+  if (password.length < 4) {
+    alert('비밀번호는 4자리 이상이어야 해요.');
+    return;
+  }
+
+  const studentId = `${name}_${school}${grade}`;
+
+  try {
+    // 중복 체크
+    const existingSnap = await getDoc(doc(db, 'students', studentId));
+    if (existingSnap.exists()) {
+      if (!confirm(`"${name}" (${school} ${grade}학년) 학생이 이미 등록되어 있어요.\n비밀번호를 새로 덮어쓸까요?`)) return;
+    }
+
+    await setDoc(doc(db, 'students', studentId), {
+      name, school, grade, password,
+      createdAt: new Date().toISOString()
+    });
+
+    alert(`✅ "${name}" 학생 등록 완료!\n\n로그인 정보:\n- 학교: ${school}\n- 학년: ${grade}\n- 이름: ${name}\n- 비밀번호: ${password}`);
+
+    // 입력 필드 초기화 (학교/학년은 유지 - 같은 반 학생 연속 등록 편의)
+    document.getElementById('newStudentName').value = '';
+    document.getElementById('newStudentPw').value = '';
+    document.getElementById('newStudentName').focus();
+
+    loadStudents();
+  } catch (err) {
+    console.error(err);
+    alert('등록 실패: ' + err.message);
+  }
+};
+
+window.loadStudents = async function() {
+  const listEl = document.getElementById('studentsList');
+  const filterSchool = document.getElementById('studentFilterSchool')?.value || '';
+  const filterGrade = document.getElementById('studentFilterGrade')?.value || '';
+  const searchName = document.getElementById('studentSearchName')?.value.trim() || '';
+
+  listEl.innerHTML = '불러오는 중...';
+  listEl.className = 'empty-state';
+  try {
+    // 학생 + 기록 동시 로드
+    const [studentSnap, recordSnap] = await Promise.all([
+      getDocs(collection(db, 'students')),
+      getDocs(collection(db, 'records'))
+    ]);
+
+    if (studentSnap.empty) {
+      listEl.innerHTML = '아직 등록된 학생이 없어요. 위에서 등록해보세요!';
+      return;
+    }
+
+    // 학생별 시험 횟수 집계
+    recordCountByStudent = {};
+    recordSnap.forEach(d => {
+      const r = d.data();
+      const key = r.studentId || `${r.studentName}_${r.studentSchool}${r.studentGrade}`;
+      recordCountByStudent[key] = (recordCountByStudent[key] || 0) + 1;
+    });
+
+    // 필터링
+    let students = [];
+    studentSnap.forEach(d => students.push({ id: d.id, ...d.data() }));
+    window._allStudents = students; // CSV 내보내기용 캐시
+    if (filterSchool) students = students.filter(s => s.school === filterSchool);
+    if (filterGrade) students = students.filter(s => s.grade === parseInt(filterGrade));
+    if (searchName) students = students.filter(s => s.name?.includes(searchName));
+
+    // 정렬: 학교 → 학년 → 이름
+    students.sort((a, b) => {
+      if (a.school !== b.school) return a.school.localeCompare(b.school);
+      if (a.grade !== b.grade) return a.grade - b.grade;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    if (students.length === 0) {
+      listEl.innerHTML = '검색 결과가 없어요.';
+      return;
+    }
+
+    const rows = students.map(s => {
+      const count = recordCountByStudent[s.id] || 0;
+      const countBadge = count > 0
+        ? `<span class="pill good">${count}회</span>`
+        : `<span class="pill warn">미응시</span>`;
+      return `
+      <tr>
+        <td><strong>${s.name}</strong></td>
+        <td>${s.school} ${s.grade}학년</td>
+        <td><code style="background:#fdf6f0;padding:3px 8px;border-radius:5px;">${s.password}</code></td>
+        <td>${countBadge}</td>
+        <td>${(s.createdAt || '').slice(0,10)}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="resetPassword('${s.id}','${s.name.replace(/'/g,"\\'")}')">비번 변경</button>
+          <button class="btn btn-secondary btn-sm" onclick="viewStudentRecords('${s.name.replace(/'/g,"\\'")}','${s.school}','${s.grade}')">📊 기록</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')">삭제</button>
+        </td>
+      </tr>
+    `;
+    });
+    listEl.className = '';
+    listEl.innerHTML = `
+      <div style="margin-bottom:8px;font-size:13px;color:#636e72;">총 ${students.length}명 (전체 ${window._allStudents.length}명)</div>
+      <table>
+        <thead><tr><th>이름</th><th>소속</th><th>비밀번호</th><th>응시</th><th>등록일</th><th>작업</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    listEl.innerHTML = '오류: ' + err.message;
+  }
+};
+
+// 학생 명단 CSV 내보내기
+window.exportStudentsCSV = function() {
+  if (!window._allStudents || window._allStudents.length === 0) {
+    alert('학생 목록을 먼저 불러와주세요!');
+    return;
+  }
+  const headers = ['이름','학교','학년','비밀번호','시험응시횟수','등록일'];
+  const rows = window._allStudents.map(s => [
+    s.name, s.school, s.grade, s.password,
+    recordCountByStudent[s.id] || 0,
+    (s.createdAt || '').slice(0, 10)
+  ]);
+  const csv = '\uFEFF' + [headers, ...rows].map(row =>
+    row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `BomnalEnglish_학생명단_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+// 비밀번호 변경
+window.resetPassword = async function(studentId, name) {
+  const newPw = prompt(`"${name}" 학생의 새 비밀번호를 입력하세요 (4자리 이상):`);
+  if (!newPw) return;
+  if (newPw.length < 4) {
+    alert('비밀번호는 4자리 이상이어야 해요.');
+    return;
+  }
+  try {
+    const snap = await getDoc(doc(db, 'students', studentId));
+    if (!snap.exists()) {
+      alert('학생을 찾을 수 없어요.');
+      return;
+    }
+    await setDoc(doc(db, 'students', studentId), {
+      ...snap.data(),
+      password: newPw
+    });
+    alert(`✅ "${name}" 학생 비밀번호가 "${newPw}"로 변경되었어요!`);
+    loadStudents();
+  } catch (err) {
+    alert('변경 실패: ' + err.message);
+  }
+};
+
+// 학생 기록 빠른 조회 (다른 탭으로 이동)
+// 학생 상세 페이지 모달
+window.viewStudentRecords = async function(name, school, grade) {
+  const modal = document.getElementById('studentDetailModal');
+  const body = document.getElementById('studentDetailBody');
+  modal.style.display = 'flex';
+  body.innerHTML = '<div class="empty-state">불러오는 중...</div>';
+
+  try {
+    const studentId = `${name}_${school}${grade}`;
+    // 해당 학생의 기록만 필터
+    const snap = await getDocs(collection(db, 'records'));
+    const records = [];
+    snap.forEach(d => {
+      const r = d.data();
+      if (r.studentId === studentId || (r.studentName === name && r.studentSchool === school && r.studentGrade == grade)) {
+        records.push({ id: d.id, ...r });
+      }
+    });
+
+    // 시간순 정렬
+    records.sort((a, b) => (a.completedAt || '').localeCompare(b.completedAt || ''));
+
+    if (records.length === 0) {
+      body.innerHTML = `
+        <div class="detail-header">
+          <div class="detail-avatar">${name.charAt(0)}</div>
+          <div>
+            <div class="detail-name">${name}</div>
+            <div class="detail-sub">${school} ${grade}학년</div>
+          </div>
+        </div>
+        <div class="empty-state">아직 시험 기록이 없어요.</div>
+      `;
+      return;
+    }
+
+    // 통계 계산
+    const totalAttempts = records.length;
+    const avgAccuracy = Math.round(records.reduce((s, r) => s + (r.accuracy || 0), 0) / records.length);
+    const avgRounds = (records.reduce((s, r) => s + (r.rounds || 1), 0) / records.length).toFixed(1);
+    const avgTime = Math.round(records.reduce((s, r) => s + (r.totalTimeSec || 0), 0) / records.length);
+    const bestAcc = Math.max(...records.map(r => r.accuracy || 0));
+    const perfectCount = records.filter(r => r.accuracy === 100).length;
+
+    // 최근 10회 그래프
+    const recent = records.slice(-10);
+    const maxBars = 10;
+
+    // 자주 틀리는 단어 집계 (최근 20회)
+    const recentWrong = records.slice(-20).flatMap(r => r.wrongWords || []);
+    const wrongCount = {};
+    recentWrong.forEach(w => {
+      wrongCount[w] = (wrongCount[w] || 0) + 1;
+    });
+    const weakWords = Object.entries(wrongCount)
+      .filter(([_, c]) => c >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15);
+
+    // 단어장별 통계
+    const bySet = {};
+    records.forEach(r => {
+      if (!bySet[r.wordSetTitle]) bySet[r.wordSetTitle] = { count: 0, accSum: 0 };
+      bySet[r.wordSetTitle].count++;
+      bySet[r.wordSetTitle].accSum += (r.accuracy || 0);
+    });
+    const setStats = Object.entries(bySet)
+      .map(([title, s]) => ({ title, count: s.count, avgAcc: Math.round(s.accSum / s.count) }))
+      .sort((a, b) => b.count - a.count);
+
+    body.innerHTML = `
+      <div class="detail-header">
+        <div class="detail-avatar">${name.charAt(0)}</div>
+        <div>
+          <div class="detail-name">${name}</div>
+          <div class="detail-sub">${school} ${grade}학년 · 등록일: ${(records[0].completedAt || '').slice(0,10)}</div>
+        </div>
+      </div>
+
+      <div class="stats-summary">
+        <div class="stat-card"><div class="n">${totalAttempts}</div><div class="l">총 시험 횟수</div></div>
+        <div class="stat-card"><div class="n">${avgAccuracy}%</div><div class="l">평균 정답률</div></div>
+        <div class="stat-card"><div class="n">${bestAcc}%</div><div class="l">최고 정답률</div></div>
+        <div class="stat-card"><div class="n">${perfectCount}</div><div class="l">만점 횟수</div></div>
+        <div class="stat-card"><div class="n">${avgRounds}</div><div class="l">평균 회차</div></div>
+        <div class="stat-card"><div class="n">${Math.floor(avgTime/60)}:${String(avgTime%60).padStart(2,'0')}</div><div class="l">평균 시간</div></div>
+      </div>
+
+      <div class="section-label">📈 최근 ${recent.length}회 정답률 추이</div>
+      <div class="chart-container">
+        <div class="simple-chart">
+          ${recent.map((r, i) => {
+            const height = (r.accuracy || 0);
+            const date = (r.completedAt || '').slice(5, 10);
+            return `
+              <div class="chart-bar" style="height:${height}%;" title="${r.wordSetTitle} - ${r.accuracy}%">
+                <div class="chart-bar-label">${r.accuracy}%</div>
+                <div class="chart-bar-xlabel">${date}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:30px;font-size:11px;color:#999;">
+          <span>왼쪽: 오래된 시험</span>
+          <span>오른쪽: 최근 시험 →</span>
+        </div>
+      </div>
+
+      ${weakWords.length > 0 ? `
+      <div class="section-label">⚠️ 자주 틀리는 단어 (최근 20회 기준, 2번 이상 틀림)</div>
+      <div class="weak-words">
+        ${weakWords.map(([word, count]) => `
+          <span class="weak-word-tag"><strong>${word}</strong> · ${count}번</span>
+        `).join('')}
+      </div>
+      ` : '<div class="section-label">✨ 최근 자주 틀린 단어가 없어요!</div>'}
+
+      <div class="section-label">📚 단어장별 응시 기록</div>
+      <table>
+        <thead><tr><th>단어장</th><th>응시 횟수</th><th>평균 정답률</th></tr></thead>
+        <tbody>
+          ${setStats.map(s => {
+            const pillClass = s.avgAcc >= 90 ? 'good' : s.avgAcc >= 70 ? 'warn' : 'bad';
+            return `
+              <tr>
+                <td><strong>${s.title}</strong></td>
+                <td>${s.count}회</td>
+                <td><span class="pill ${pillClass}">${s.avgAcc}%</span></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <div class="section-label">📋 전체 기록 (최근순)</div>
+      <table>
+        <thead><tr><th>일시</th><th>단어장</th><th>정답률</th><th>회차</th><th>시간</th></tr></thead>
+        <tbody>
+          ${[...records].reverse().slice(0, 20).map(r => {
+            const pillClass = (r.accuracy||0) >= 90 ? 'good' : (r.accuracy||0) >= 70 ? 'warn' : 'bad';
+            const min = Math.floor((r.totalTimeSec||0)/60);
+            const sec = (r.totalTimeSec||0)%60;
+            return `
+              <tr>
+                <td style="font-size:12px;">${(r.completedAt||'').replace('T',' ').slice(0,16)}</td>
+                <td>${r.wordSetTitle}</td>
+                <td><span class="pill ${pillClass}">${r.accuracy}%</span></td>
+                <td>${r.rounds}회차</td>
+                <td>${min}:${String(sec).padStart(2,'0')}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      ${records.length > 20 ? `<div class="empty-state" style="padding:12px;">...최근 20개만 표시 (전체 ${records.length}개)</div>` : ''}
+    `;
+  } catch (err) {
+    body.innerHTML = `<div class="empty-state">오류: ${err.message}</div>`;
+  }
+};
+
+window.closeStudentDetail = function() {
+  document.getElementById('studentDetailModal').style.display = 'none';
+};
+
+// 모달 외부 클릭 시 닫기
+document.getElementById('studentDetailModal').addEventListener('click', (e) => {
+  if (e.target.id === 'studentDetailModal') closeStudentDetail();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeStudentDetail();
+});
+
+// 탭 이름으로 전환 (event 객체 없이)
+function switchTabByName(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  if (name === 'words') tabs[0].classList.add('active');
+  else if (name === 'records') tabs[1].classList.add('active');
+  else if (name === 'students') tabs[2].classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+window.deleteStudent = async function(id, name) {
+  if (!confirm(`"${name}" 학생을 삭제할까요?\n(시험 기록은 그대로 보존됩니다)`)) return;
+  try {
+    await deleteDoc(doc(db, 'students', id));
+    loadStudents();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+};
+
+// 페이지 로드 시 학생 탭 클릭하면 자동으로 목록 표시
+document.querySelectorAll('.tab').forEach((tab, idx) => {
+  if (idx === 2) { // 학생 관리 탭
+    tab.addEventListener('click', () => {
+      setTimeout(loadStudents, 100);
+    });
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>봄날 English - 단어 시험</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+    background: #fdf6f0;
+    min-height: 100vh;
+    padding: 20px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .container { max-width: 700px; margin: 0 auto; }
+
+  /* 진행 바 */
+  .progress-wrap {
+    background: white; border-radius: 16px; padding: 16px 20px;
+    margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .progress-info {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; font-size: 13px; color: #9e7a87;
+  }
+  .progress-info .round { font-weight: 700; color: #d4738f; }
+  .progress-bar {
+    width: 100%; height: 6px; background: #fdf6f0; border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #f2b8c6, #d4738f);
+    transition: width 0.3s; border-radius: 3px;
+  }
+
+  /* 타이머 */
+  .timer-wrap {
+    text-align: center; margin-bottom: 12px;
+  }
+  .timer {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    font-size: 24px; font-weight: 700; color: #5c3d47;
+    transition: background 0.3s, color 0.3s;
+  }
+  .timer.warning { background: #fab1a0; color: white; }
+  .timer.danger { background: #d63031; color: white; animation: pulse 0.4s infinite; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+  /* 문제 */
+  .question-card {
+    background: white; border-radius: 20px; padding: 40px 24px;
+    text-align: center; margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .question-label {
+    font-size: 12px; color: #9e7a87; margin-bottom: 12px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .question-word {
+    font-size: 42px; font-weight: 700; color: #5c3d47;
+    letter-spacing: -0.5px;
+  }
+  .speak-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; margin-top: 6px;
+  }
+  .speak-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #fff0f4; border: 2px solid #f2b8c6;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; transition: all 0.15s; padding: 0;
+  }
+  .speak-btn:hover { background: #f2b8c6; transform: scale(1.05); }
+  .speak-btn:active { transform: scale(0.95); }
+  .speak-btn.playing { background: #f2b8c6; animation: pulseSpeak 0.8s infinite; }
+  @keyframes pulseSpeak {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(253,203,110,0.6); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(253,203,110,0); }
+  }
+
+  /* 보기 */
+  .options { display: grid; gap: 10px; }
+  .option {
+    background: white; border: 2px solid #f2d4dc; border-radius: 14px;
+    padding: 18px 20px; font-size: 16px; cursor: pointer;
+    transition: all 0.15s; display: flex; align-items: center; gap: 12px;
+    text-align: left;
+  }
+  .option:hover { border-color: #f2b8c6; transform: translateX(2px); }
+  .option .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #fdf6f0; color: #9e7a87; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .option.correct {
+    background: #d4f5e9; border-color: #00b894; color: #00733b;
+  }
+  .option.correct .num { background: #00b894; color: white; }
+  .option.wrong {
+    background: #ffe0e0; border-color: #d63031; color: #8b0000;
+  }
+  .option.wrong .num { background: #d63031; color: white; }
+  .option.disabled { pointer-events: none; opacity: 0.7; }
+
+  /* 결과 화면 */
+  .result-card {
+    background: white; border-radius: 20px; padding: 32px 24px;
+    text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .result-emoji { font-size: 60px; margin-bottom: 12px; }
+  .result-title { font-size: 24px; font-weight: 700; color: #5c3d47; margin-bottom: 8px; }
+  .result-sub { color: #9e7a87; font-size: 14px; margin-bottom: 24px; }
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-box {
+    background: #fdf6f0; border-radius: 12px; padding: 16px 8px;
+  }
+  .stat-box .num { font-size: 22px; font-weight: 700; color: #5c3d47; }
+  .stat-box .label { font-size: 11px; color: #9e7a87; margin-top: 4px; }
+  .wrong-list {
+    background: #fff5f5; border-radius: 12px; padding: 16px;
+    margin-bottom: 20px; text-align: left;
+  }
+  .wrong-list h4 { font-size: 13px; color: #d63031; margin-bottom: 8px; }
+  .wrong-item {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    font-size: 14px; border-bottom: 1px dashed #ffd0d0;
+  }
+  .wrong-item:last-child { border-bottom: none; }
+  .wrong-item .en { font-weight: 600; color: #5c3d47; }
+  .wrong-item .ko { color: #9e7a87; }
+  .btn-row { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 14px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #f2b8c6, #d4738f); color: white;
+  }
+  .btn-secondary {
+    background: #fdf6f0; color: #5c3d47;
+  }
+
+  .loading { text-align: center; padding: 60px; color: #9e7a87; }
+</style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="loading">불러오는 중...</div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCxS524S8KAaF87DomPtl9sJdF-eqes404",
+  authDomain: "bomnalvaca.firebaseapp.com",
+  projectId: "bomnalvaca",
+  storageBucket: "bomnalvaca.firebasestorage.app",
+  messagingSenderId: "115868052300",
+  appId: "1:115868052300:web:765c08867b6f1ce0987de9"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const student = JSON.parse(sessionStorage.getItem('student') || 'null');
+const quizData = JSON.parse(sessionStorage.getItem('currentQuiz') || 'null');
+if (!student || !quizData) location.href = 'index.html';
+
+const TIME_LIMIT = 10; // 초
+const allWords = quizData.words; // [{english, korean}, ...]
+
+// 시험 상태
+let currentRound = 1;
+let queue = [...allWords];   // 이번 라운드에 풀 단어
+let wrongInRound = [];        // 이번 라운드 오답
+let totalCorrectFirst = 0;    // 1차 시도 정답 수
+let firstRoundWrong = [];     // 1차 시도 최종 오답 (기록용)
+let currentIdx = 0;
+let startTime = Date.now();
+let timerInterval = null;
+let timeLeft = TIME_LIMIT;
+let answered = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// === 🔊 음성 합성 - Google Translate TTS (MP3 방식) ===
+// 브라우저 TTS보다 훨씬 안정적이고 발음도 자연스러움
+
+// === 🎵 효과음 (Web Audio API - 외부 파일 없이 생성) ===
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { console.warn('AudioContext 사용 불가'); }
+  }
+  return audioCtx;
+}
+
+function playTone(frequency, duration, type = 'sine', volume = 0.15) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+// 정답 효과음: "딩~" (밝은 소리 - 도미솔)
+function playCorrectSound() {
+  playTone(523.25, 0.15, 'sine', 0.15); // C5
+  setTimeout(() => playTone(659.25, 0.15, 'sine', 0.15), 80); // E5
+  setTimeout(() => playTone(783.99, 0.25, 'sine', 0.15), 160); // G5
+}
+
+// 오답 효과음: "부욱" (낮은 소리)
+function playWrongSound() {
+  playTone(220, 0.25, 'square', 0.1); // A3
+  setTimeout(() => playTone(174.61, 0.3, 'square', 0.1), 100); // F3
+}
+
+// 시간 초과: "띠~" (경고음)
+function playTimeoutSound() {
+  playTone(440, 0.08, 'square', 0.1);
+  setTimeout(() => playTone(440, 0.08, 'square', 0.1), 120);
+  setTimeout(() => playTone(349.23, 0.15, 'square', 0.1), 240);
+}
+
+const audioCache = {};  // 같은 단어 재요청 방지
+let useFallback = false;  // CORS 등으로 차단되면 브라우저 TTS로 폴백
+
+function getTTSUrl(text) {
+  const encoded = encodeURIComponent(text);
+  // Google Translate의 TTS 엔드포인트 (공개적으로 사용 가능)
+  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=en&client=tw-ob`;
+}
+
+// 폴백: 브라우저 내장 TTS
+function speakWordFallback(text) {
+  if (!window.speechSynthesis) {
+    console.warn('[TTS] 브라우저 TTS도 지원 안 함');
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+  } catch(e) {}
+  setTimeout(() => {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 0.9;
+    utter.volume = 1.0;
+    const voices = window.speechSynthesis.getVoices();
+    const enVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+    if (enVoice) utter.voice = enVoice;
+    utter.onstart = () => {
+      const btn = document.getElementById('speakBtn');
+      if (btn) btn.classList.add('playing');
+    };
+    utter.onend = utter.onerror = () => {
+      const btn = document.getElementById('speakBtn');
+      if (btn) btn.classList.remove('playing');
+    };
+    window.speechSynthesis.speak(utter);
+  }, 50);
+}
+
+function speakWord(text) {
+  if (!text) return;
+  console.log('[TTS] 재생 요청:', text, useFallback ? '(브라우저 TTS)' : '(Google TTS)');
+
+  // 폴백 모드면 브라우저 TTS 사용
+  if (useFallback) {
+    speakWordFallback(text);
+    return;
+  }
+
+  // 이전 오디오 정지
+  if (window._currentAudio) {
+    try {
+      window._currentAudio.pause();
+      window._currentAudio.currentTime = 0;
+    } catch(e) {}
+  }
+
+  // 캐시에서 가져오거나 새로 생성
+  let audio = audioCache[text];
+  if (!audio) {
+    audio = new Audio(getTTSUrl(text));
+    audio.preload = 'auto';
+    audioCache[text] = audio;
+  } else {
+    audio.currentTime = 0;
+  }
+
+  window._currentAudio = audio;
+
+  const btn = document.getElementById('speakBtn');
+  if (btn) btn.classList.add('playing');
+
+  audio.onended = () => {
+    const btn = document.getElementById('speakBtn');
+    if (btn) btn.classList.remove('playing');
+  };
+  audio.onerror = (e) => {
+    console.warn('[TTS] Google TTS 차단됨, 브라우저 TTS로 전환합니다');
+    useFallback = true;
+    const btn = document.getElementById('speakBtn');
+    if (btn) btn.classList.remove('playing');
+    // 즉시 폴백으로 재시도
+    speakWordFallback(text);
+  };
+
+  const playPromise = audio.play();
+  if (playPromise && playPromise.catch) {
+    playPromise.catch(err => {
+      console.warn('[TTS] play 실패, 브라우저 TTS로 전환:', err.message);
+      useFallback = true;
+      const btn = document.getElementById('speakBtn');
+      if (btn) btn.classList.remove('playing');
+      speakWordFallback(text);
+    });
+  }
+}
+
+// 단어 미리 로드 (캐싱) - 시험 시작 전에 호출
+function preloadWords(words) {
+  if (useFallback) return;
+  words.forEach(w => {
+    if (!audioCache[w.english]) {
+      const audio = new Audio(getTTSUrl(w.english));
+      audio.preload = 'auto';
+      audioCache[w.english] = audio;
+    }
+  });
+}
+
+// 전역에서 호출 가능하게
+window.speakWord = speakWord;
+
+window.replayWord = function() {
+  const word = queue[currentIdx];
+  if (word) speakWord(word.english);
+};
+
+// 결과 화면에서 오답 단어 클릭 시 발음
+window.speakOne = function(english) {
+  speakWord(english);
+};
+
+function makeOptions(correctWord) {
+  // 다른 단어들의 한국어 뜻을 가져와서 오답 보기 만들기
+  const others = allWords.filter(w => w.korean !== correctWord.korean);
+  const wrongs = shuffle(others).slice(0, 3).map(w => w.korean);
+  return shuffle([correctWord.korean, ...wrongs]);
+}
+
+function startRound() {
+  queue = shuffle(queue);
+  wrongInRound = [];
+  currentIdx = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  if (currentIdx >= queue.length) {
+    endRound();
+    return;
+  }
+  answered = false;
+  const word = queue[currentIdx];
+  const options = makeOptions(word);
+  const progress = ((currentIdx) / queue.length) * 100;
+
+  document.getElementById('app').innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-info">
+        <span class="round">${currentRound}회차 (${queue.length}문제 중 ${currentIdx + 1}번)</span>
+        <span>${student.name}님</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer" id="timer">${TIME_LIMIT}</div>
+    </div>
+    <div class="question-card">
+      <div class="question-label">다음 단어의 뜻은?</div>
+      <div class="speak-row">
+        <div class="question-word">${word.english}</div>
+        <button class="speak-btn" id="speakBtn" onclick="replayWord()" title="다시 듣기" type="button">🔊</button>
+      </div>
+    </div>
+    <div class="options" id="options">
+      ${options.map((opt, i) => `
+        <div class="option" data-correct="${opt === word.korean}" data-idx="${i}">
+          <div class="num">${i + 1}</div>
+          <div>${opt}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.querySelectorAll('.option').forEach(el => {
+    el.addEventListener('click', () => selectAnswer(el, word));
+  });
+
+  // 🔊 문제 뜨자마자 자동으로 단어 읽어주기
+  setTimeout(() => speakWord(word.english), 150);
+
+  startTimer(word);
+}
+
+function startTimer(word) {
+  timeLeft = TIME_LIMIT;
+  const timerEl = document.getElementById('timer');
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    if (timerEl) {
+      timerEl.textContent = timeLeft;
+      timerEl.classList.toggle('warning', timeLeft <= 5 && timeLeft > 3);
+      timerEl.classList.toggle('danger', timeLeft <= 3);
+    }
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timeOut(word);
+    }
+  }, 1000);
+}
+
+function timeOut(word) {
+  if (answered) return;
+  answered = true;
+  playTimeoutSound();  // 🔔 시간 초과 효과음
+  // 정답 표시
+  document.querySelectorAll('.option').forEach(el => {
+    el.classList.add('disabled');
+    if (el.dataset.correct === 'true') el.classList.add('correct');
+  });
+  wrongInRound.push(word);
+  if (currentRound === 1) firstRoundWrong.push(word);
+  setTimeout(nextQuestion, 1200);
+}
+
+function selectAnswer(el, word) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const isCorrect = el.dataset.correct === 'true';
+
+  document.querySelectorAll('.option').forEach(o => {
+    o.classList.add('disabled');
+    if (o.dataset.correct === 'true') o.classList.add('correct');
+  });
+  if (!isCorrect) {
+    el.classList.add('wrong');
+    wrongInRound.push(word);
+    if (currentRound === 1) firstRoundWrong.push(word);
+    playWrongSound();  // 🔔 오답 효과음
+  } else {
+    if (currentRound === 1) totalCorrectFirst++;
+    playCorrectSound();  // 🔔 정답 효과음
+  }
+  setTimeout(nextQuestion, isCorrect ? 600 : 1100);
+}
+
+function nextQuestion() {
+  currentIdx++;
+  showQuestion();
+}
+
+function endRound() {
+  if (wrongInRound.length === 0) {
+    // 모두 정답 → 종료
+    finishQuiz();
+  } else {
+    // 오답 다시 시험
+    showRoundComplete();
+  }
+}
+
+function showRoundComplete() {
+  const correctThisRound = queue.length - wrongInRound.length;
+  document.getElementById('app').innerHTML = `
+    <div class="result-card">
+      <div class="result-emoji">💪</div>
+      <div class="result-title">${currentRound}회차 완료!</div>
+      <div class="result-sub">정답 ${correctThisRound}개 / 오답 ${wrongInRound.length}개</div>
+      <div class="result-sub" style="margin-bottom:24px;">
+        오답을 다시 풀어볼까요? (${currentRound + 1}회차)
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="window.startNextRound()">다음 회차 시작 →</button>
+      </div>
+    </div>
+  `;
+}
+
+window.startNextRound = function() {
+  currentRound++;
+  queue = wrongInRound;
+  wrongInRound = [];
+  currentIdx = 0;
+  showQuestion();
+};
+
+async function finishQuiz() {
+  // 🎉 축하 효과음 (도미솔도)
+  playTone(523.25, 0.15, 'sine', 0.15);
+  setTimeout(() => playTone(659.25, 0.15, 'sine', 0.15), 100);
+  setTimeout(() => playTone(783.99, 0.15, 'sine', 0.15), 200);
+  setTimeout(() => playTone(1046.5, 0.4, 'sine', 0.2), 300);
+
+  const totalTime = Math.floor((Date.now() - startTime) / 1000);
+  const accuracy = Math.round((totalCorrectFirst / allWords.length) * 100);
+
+  const record = {
+    studentId: student.id,
+    studentName: student.name,
+    studentSchool: student.school,
+    studentGrade: student.grade,
+    wordSetId: quizData.id,
+    wordSetTitle: quizData.title,
+    totalWords: allWords.length,
+    correctFirst: totalCorrectFirst,
+    wrongWords: firstRoundWrong.map(w => `${w.english}(${w.korean})`),
+    rounds: currentRound,
+    totalTimeSec: totalTime,
+    accuracy: accuracy,
+    completedAt: new Date().toISOString()
+  };
+
+  try {
+    await addDoc(collection(db, 'records'), record);
+  } catch (err) {
+    console.error('기록 저장 실패:', err);
+  }
+
+  showFinalResult(record);
+}
+
+function showFinalResult(record) {
+  const min = Math.floor(record.totalTimeSec / 60);
+  const sec = record.totalTimeSec % 60;
+  const emoji = record.accuracy >= 90 ? '🏆' : record.accuracy >= 70 ? '🌸' : '🌱';
+  const wrongList = firstRoundWrong.length > 0 ? `
+    <div class="wrong-list">
+      <h4>📝 1차 시도 오답 (${firstRoundWrong.length}개) — 단어를 누르면 발음을 들을 수 있어요!</h4>
+      ${firstRoundWrong.map((w, i) => `
+        <div class="wrong-item" onclick="window.speakOne('${w.english.replace(/'/g,"\\'")}')" style="cursor:pointer;">
+          <span class="en">🔊 ${w.english}</span>
+          <span class="ko">${w.korean}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  document.getElementById('app').innerHTML = `
+    <div class="result-card">
+      <div class="result-emoji">${emoji}</div>
+      <div class="result-title">시험 완료!</div>
+      <div class="result-sub">모든 단어를 다 맞췄어요 🎉</div>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="num">${record.accuracy}%</div>
+          <div class="label">1차 정답률</div>
+        </div>
+        <div class="stat-box">
+          <div class="num">${record.rounds}</div>
+          <div class="label">총 회차</div>
+        </div>
+        <div class="stat-box">
+          <div class="num">${min}:${String(sec).padStart(2,'0')}</div>
+          <div class="label">소요 시간</div>
+        </div>
+      </div>
+      ${wrongList}
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="location.href='select.html'">단어장 목록</button>
+        <button class="btn btn-primary" onclick="location.reload()">다시 풀기</button>
+      </div>
+    </div>
+  `;
+}
+
+function showStartScreen() {
+  document.getElementById('app').innerHTML = `
+    <div class="result-card">
+      <div class="result-emoji">🎧</div>
+      <div class="result-title">${quizData.title}</div>
+      <div class="result-sub">단어 ${allWords.length}개 · 4지선다 · 10초 제한</div>
+      <div class="result-sub" style="background:#fff0f4;padding:12px;border-radius:10px;margin:16px 0;">
+        🔊 <strong>소리가 나는 시험이에요!</strong><br>
+        볼륨을 켜고 시작 버튼을 눌러주세요.
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="window.beginQuiz()">시작하기 →</button>
+      </div>
+    </div>
+  `;
+}
+
+window.beginQuiz = function() {
+  // AudioContext 깨우기 (사용자 클릭 시점에 해야 작동함)
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+  // 모든 단어 오디오를 미리 로드 (캐싱)
+  preloadWords(allWords);
+  startTime = Date.now();
+  startRound();
+};
+
+showStartScreen();
+</script>
+</body>
+</html>
