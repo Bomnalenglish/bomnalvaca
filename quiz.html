@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA 설정 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d4738f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="봄날단어">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
 <title>봄날 English - 단어 시험</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -157,7 +166,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCxS524S8KAaF87DomPtl9sJdF-eqes404",
@@ -173,6 +182,48 @@ const db = getFirestore(app);
 const student = JSON.parse(sessionStorage.getItem('student') || 'null');
 const quizData = JSON.parse(sessionStorage.getItem('currentQuiz') || 'null');
 if (!student || !quizData) location.href = 'index.html';
+
+// 응시 횟수 체크 후 시작
+async function checkAttemptsAndStart() {
+  const maxAttempts = quizData.maxAttempts || 0;
+  if (maxAttempts === 0) { showStartScreen(); return; } // 무제한이면 바로
+
+  try {
+    const q = query(
+      collection(db, 'records'),
+      where('studentId', '==', student.id),
+      where('wordSetId', '==', quizData.id)
+    );
+    const snap = await getDocs(q);
+    const usedAttempts = snap.size;
+
+    if (usedAttempts >= maxAttempts) {
+      // 응시 횟수 초과
+      document.getElementById('app').innerHTML = `
+        <div style="background:white;border-radius:20px;padding:40px 24px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.06);max-width:500px;margin:0 auto;">
+          <div style="font-size:56px;margin-bottom:16px;">🔒</div>
+          <div style="font-size:20px;font-weight:700;color:#5c3d47;margin-bottom:8px;">응시 횟수 초과</div>
+          <div style="color:#9e7a87;font-size:14px;margin-bottom:24px;">
+            이 단어장은 최대 <strong>${maxAttempts}회</strong>까지 응시할 수 있어요.<br>
+            이미 <strong>${usedAttempts}회</strong> 응시했어요.
+          </div>
+          <button onclick="location.href='select.html'"
+            style="padding:14px 28px;background:linear-gradient(135deg,#f2b8c6,#d4738f);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">
+            ← 다른 단어장 보기
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    // 남은 횟수 안내 후 시작
+    const remaining = maxAttempts - usedAttempts;
+    showStartScreen(remaining, maxAttempts);
+  } catch(e) {
+    console.error('응시 횟수 확인 실패:', e);
+    showStartScreen(); // 오류 시 그냥 시작
+  }
+}
 
 const TIME_LIMIT = 10; // 초
 const allWords = quizData.words; // [{english, korean}, ...]
@@ -603,12 +654,18 @@ function showFinalResult(record) {
   `;
 }
 
-function showStartScreen() {
+function showStartScreen(remaining = null, maxAttempts = 0) {
+  const attemptsInfo = remaining !== null
+    ? `<div style="background:#fff0f4;padding:10px;border-radius:10px;margin:12px 0;font-size:13px;color:#c2567a;">
+        📊 남은 응시 횟수: <strong>${remaining}회</strong> / ${maxAttempts}회
+       </div>`
+    : '';
   document.getElementById('app').innerHTML = `
     <div class="result-card">
       <div class="result-emoji">🎧</div>
       <div class="result-title">${quizData.title}</div>
       <div class="result-sub">단어 ${allWords.length}개 · 4지선다 · 10초 제한</div>
+      ${attemptsInfo}
       <div class="result-sub" style="background:#fff0f4;padding:12px;border-radius:10px;margin:16px 0;">
         🔊 <strong>소리가 나는 시험이에요!</strong><br>
         볼륨을 켜고 시작 버튼을 눌러주세요.
@@ -621,16 +678,23 @@ function showStartScreen() {
 }
 
 window.beginQuiz = function() {
-  // AudioContext 깨우기 (사용자 클릭 시점에 해야 작동함)
   const ctx = getAudioCtx();
   if (ctx && ctx.state === 'suspended') ctx.resume();
-  // 모든 단어 오디오를 미리 로드 (캐싱)
   preloadWords(allWords);
   startTime = Date.now();
   startRound();
 };
 
-showStartScreen();
+checkAttemptsAndStart();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] 서비스 워커 등록:', reg.scope))
+      .catch(err => console.warn('[PWA] 등록 실패:', err));
+  });
+}
 </script>
 </body>
 </html>

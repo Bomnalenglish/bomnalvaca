@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- PWA 설정 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d4738f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="봄날단어">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
 <title>봄날 English - 단어장 선택</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -116,15 +125,29 @@ window.logout = function() {
 async function loadQuizzes() {
   const colors = ['c-sky', 'c-mint', 'c-peach', 'c-lemon', 'c-lavender', 'c-rose'];
   try {
-    const q = query(
-      collection(db, 'wordSets'),
-      where('school', '==', student.school),
-      where('grade', '==', student.grade)
-    );
-    const snap = await getDocs(q);
+    // 단어장 + 내 시험 기록 동시 로드
+    const [wordSnap, recordSnap] = await Promise.all([
+      getDocs(query(
+        collection(db, 'wordSets'),
+        where('school', '==', student.school),
+        where('grade', '==', student.grade)
+      )),
+      getDocs(query(
+        collection(db, 'records'),
+        where('studentId', '==', student.id)
+      ))
+    ]);
+
+    // 단어장별 내 응시 횟수 집계
+    const myAttempts = {};
+    recordSnap.forEach(d => {
+      const r = d.data();
+      myAttempts[r.wordSetId] = (myAttempts[r.wordSetId] || 0) + 1;
+    });
+
     const listEl = document.getElementById('quizList');
 
-    if (snap.empty) {
+    if (wordSnap.empty) {
       listEl.className = '';
       listEl.innerHTML = `<div class="empty">아직 등록된 단어장이 없어요.<br>선생님께 문의해주세요!</div>`;
       return;
@@ -133,22 +156,44 @@ async function loadQuizzes() {
     listEl.className = 'quiz-grid';
     listEl.innerHTML = '';
     let i = 0;
-    snap.forEach(doc => {
+    wordSnap.forEach(doc => {
       const data = doc.data();
+      const max = data.maxAttempts || 0;
+      const used = myAttempts[doc.id] || 0;
+      const isLocked = max > 0 && used >= max;
+
+      // 응시 정보 배지
+      let attemptBadge = '';
+      if (max === 0) {
+        attemptBadge = used > 0
+          ? `<span style="font-size:11px;color:#9e7a87;">응시 ${used}회</span>`
+          : '';
+      } else {
+        const color = isLocked ? '#d63031' : used > 0 ? '#b8860b' : '#00733b';
+        attemptBadge = `<span style="font-size:11px;color:${color};font-weight:600;">
+          ${isLocked ? '🔒 응시 마감' : `${used}/${max}회 응시`}
+        </span>`;
+      }
+
       const card = document.createElement('div');
-      card.className = `quiz-card ${colors[i % colors.length]}`;
+      card.className = `quiz-card ${colors[i % colors.length]}${isLocked ? ' locked' : ''}`;
+      card.style.cssText = isLocked ? 'opacity:0.55;cursor:not-allowed;' : '';
       card.innerHTML = `
         <h3>${data.title}</h3>
         <div class="meta">단어 ${data.words?.length || 0}개 · 4지선다</div>
+        <div style="margin-top:6px;">${attemptBadge}</div>
       `;
-      card.onclick = () => {
-        sessionStorage.setItem('currentQuiz', JSON.stringify({
-          id: doc.id,
-          title: data.title,
-          words: data.words
-        }));
-        location.href = 'quiz.html';
-      };
+      if (!isLocked) {
+        card.onclick = () => {
+          sessionStorage.setItem('currentQuiz', JSON.stringify({
+            id: doc.id,
+            title: data.title,
+            words: data.words,
+            maxAttempts: max
+          }));
+          location.href = 'quiz.html';
+        };
+      }
       listEl.appendChild(card);
       i++;
     });
@@ -160,6 +205,15 @@ async function loadQuizzes() {
 }
 
 loadQuizzes();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[PWA] 서비스 워커 등록:', reg.scope))
+      .catch(err => console.warn('[PWA] 등록 실패:', err));
+  });
+}
 </script>
 </body>
 </html>

@@ -148,71 +148,132 @@
 
       <!-- 단어장 관리 -->
       <div id="panel-words" class="panel active">
-        <h3 style="margin-bottom:12px;">새 단어장 추가</h3>
+
+        <!-- 탭: 단일 등록 / 자동분할 업로드 / 기존 목록 -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;background:#fdf6f0;padding:6px;border-radius:12px;">
+          <button class="btn" id="wtab-single" onclick="switchWordTab('single')"
+            style="flex:1;padding:10px;font-size:13px;font-weight:600;background:linear-gradient(135deg,#f2b8c6,#d4738f);color:white;border-radius:8px;">
+            ✏️ 단일 등록
+          </button>
+          <button class="btn" id="wtab-split" onclick="switchWordTab('split')"
+            style="flex:1;padding:10px;font-size:13px;font-weight:600;background:#fff9f6;color:#9e7a87;border-radius:8px;">
+            ✂️ 자동 분할
+          </button>
+          <button class="btn" id="wtab-bulk" onclick="switchWordTab('bulk')"
+            style="flex:1;padding:10px;font-size:13px;font-weight:600;background:#fff9f6;color:#9e7a87;border-radius:8px;">
+            📦 일괄 업로드
+          </button>
+        </div>
+
+        <!-- 단일 등록 -->
+        <div id="wpanel-single">
+          <div class="form-row">
+            <input type="text" id="newTitle" placeholder="단어장 제목 (예: 종촌중3 1과)">
+            <select id="newSchool"><option value="">로딩 중...</option></select>
+            <select id="newGrade">
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+            </select>
+          </div>
+          <div class="form-row" style="align-items:center;">
+            <label style="white-space:nowrap;font-size:13px;font-weight:600;color:#5c3d47;">
+              최대 응시 횟수
+            </label>
+            <select id="newMaxAttempts">
+              <option value="0">무제한</option>
+              <option value="1">1회</option>
+              <option value="2">2회</option>
+              <option value="3">3회</option>
+              <option value="5">5회</option>
+              <option value="10">10회</option>
+            </select>
+            <span style="font-size:12px;color:#9e7a87;">0 = 무제한, 그 외 = 해당 횟수까지만 응시 가능</span>
+          </div>
+          <div class="help">
+            💡 한 줄에 하나씩 <code>영어,한국어</code> 형식. <code>apple = 사과</code> 형식도 가능
+          </div>
+          <textarea id="newWords" placeholder="apple,사과&#10;banana,바나나&#10;grape,포도"></textarea>
+          <div style="margin-top:12px;display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="saveWordSet()">단어장 저장</button>
+            <button class="btn btn-secondary" onclick="loadDemoWords()">📥 시범 단어 10개</button>
+          </div>
+        </div>
+
+        <!-- 자동 분할 업로드 -->
+        <div id="wpanel-split" style="display:none;">
+          <div class="help">
+            💡 <strong>워드마스터, 수능필수 등 대용량 단어장을 자동으로 n개씩 분할</strong>해드려요!<br>
+            엑셀/구글시트에서 <code>영어,한국어</code> 형식으로 복붙하세요. 자동으로 세트로 나눠져요.
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <input type="text" id="splitTitle" placeholder="단어장 이름 (예: 워드마스터고등)">
+            <select id="splitSchool"><option value="">로딩 중...</option></select>
+            <select id="splitGrade">
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+            </select>
+          </div>
+          <div class="form-row" style="align-items:center;">
+            <label style="white-space:nowrap;font-size:13px;font-weight:600;color:#5c3d47;">
+              세트당 단어 수
+            </label>
+            <input type="number" id="splitSize" value="20" min="5" max="100"
+              style="width:80px;flex:none;">
+            <label style="white-space:nowrap;font-size:13px;font-weight:600;color:#5c3d47;margin-left:8px;">
+              최대 응시 횟수
+            </label>
+            <select id="splitMaxAttempts">
+              <option value="0">무제한</option>
+              <option value="1">1회</option>
+              <option value="2">2회</option>
+              <option value="3">3회</option>
+              <option value="5">5회</option>
+              <option value="10">10회</option>
+            </select>
+          </div>
+          <textarea id="splitWords" placeholder="apple,사과&#10;banana,바나나&#10;grape,포도&#10;... (몇 개든 OK!)" style="min-height:220px;"></textarea>
+          <div id="splitPreview" style="margin-top:10px;"></div>
+          <div style="margin-top:10px;display:flex;gap:10px;">
+            <button class="btn btn-secondary" onclick="previewSplit()">👁️ 미리보기</button>
+            <button class="btn btn-primary" onclick="saveSplitWordSets()">✂️ 분할 저장</button>
+          </div>
+        </div>
+
+        <!-- 일괄 업로드 -->
+        <div id="wpanel-bulk" style="display:none;">
+          <div class="help">
+            💡 여러 단어장을 <code>===</code>로 구분해서 한 번에 업로드하세요.<br>
+            각 단어장 첫 줄: <code>제목|학교|학년|최대응시횟수</code> (횟수 생략 시 무제한)<br>
+            <code style="display:block;background:#fff;padding:8px;border-radius:6px;margin-top:6px;font-size:11px;white-space:pre;">종촌중3 1과|종촌중|3|3
+apple,사과
+banana,바나나
+===
+어진중2 2과|어진중|2
+run,달리다
+jump,뛰다</code>
+          </div>
+          <textarea id="bulkWordSets" style="min-height:260px;" placeholder="단어장제목|학교|학년|응시횟수&#10;영어1,한국어1&#10;영어2,한국어2&#10;===&#10;..."></textarea>
+          <div style="margin-top:10px;display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="bulkAddWordSets()">📥 일괄 업로드</button>
+            <button class="btn btn-secondary" onclick="loadBulkDemo()">예시 채우기</button>
+          </div>
+        </div>
+
+        <h3 style="margin:28px 0 12px;">기존 단어장 목록</h3>
         <div class="form-row">
-          <input type="text" id="newTitle" placeholder="단어장 제목 (예: 종촌중3 1과)">
-          <select id="newSchool">
-            <option value="종촌중">종촌중</option>
-            <option value="어진중">어진중</option>
-            <option value="고운중">고운중</option>
-            <option value="종촌고">종촌고</option>
+          <select id="filterWordSchool" onchange="loadWordSets()">
+            <option value="">전체 학교</option>
           </select>
-          <select id="newGrade">
+          <select id="filterWordGrade" onchange="loadWordSets()">
+            <option value="">전체 학년</option>
             <option value="1">1학년</option>
             <option value="2">2학년</option>
             <option value="3">3학년</option>
           </select>
+          <button class="btn btn-secondary" onclick="loadWordSets()">🔄 새로고침</button>
         </div>
-        <div class="help">
-          💡 <strong>단어 입력 방법</strong>: 한 줄에 하나씩, <code>영어,한국어</code> 형식으로 입력하세요.<br>
-          예: <code>apple,사과</code> 또는 <code>apple, 사과</code> 또는 <code>apple = 사과</code> 모두 가능
-        </div>
-        <textarea id="newWords" placeholder="apple,사과
-banana,바나나
-grape,포도
-dog,강아지
-cat,고양이"></textarea>
-        <div style="margin-top:12px; display:flex; gap:10px;">
-          <button class="btn btn-primary" onclick="saveWordSet()">단어장 저장</button>
-          <button class="btn btn-secondary" onclick="loadDemoWords()">📥 시범 단어 10개 채우기</button>
-        </div>
-
-        <details style="margin-top:20px;">
-          <summary style="cursor:pointer;font-weight:600;color:#d4738f;padding:8px 0;">
-            📦 여러 단어장 한 번에 업로드 (엑셀/구글시트)
-          </summary>
-          <div style="padding:12px 0;">
-            <div class="help">
-              💡 <strong>구분자 방식</strong>: 각 단어장을 <code>===</code>로 구분하세요.<br>
-              첫 줄에 <code>제목|학교|학년</code> 형식으로 메타정보를 넣고, 그 아래에 단어들을 적어주세요.<br><br>
-              <strong>예시:</strong><br>
-              <code style="display:block;background:#fff;padding:10px;border-radius:6px;margin-top:6px;white-space:pre;font-size:11px;">종촌중3 1과|종촌중|3
-apple,사과
-banana,바나나
-grape,포도
-dog,강아지
-===
-어진중2 2과|어진중|2
-run,달리다
-jump,뛰다
-swim,수영하다
-walk,걷다</code>
-            </div>
-            <textarea id="bulkWordSets" placeholder="첫 단어장|학교|학년
-영어단어1,한국어1
-영어단어2,한국어2
-===
-두번째 단어장|학교|학년
-...
-" style="min-height:260px;"></textarea>
-            <div style="margin-top:10px;">
-              <button class="btn btn-primary" onclick="bulkAddWordSets()">📥 일괄 업로드</button>
-              <button class="btn btn-secondary" onclick="loadBulkDemo()">예시 3개 채우기</button>
-            </div>
-          </div>
-        </details>
-
-        <h3 style="margin:32px 0 12px;">기존 단어장 목록</h3>
         <div id="wordSetsList" class="empty-state">불러오는 중...</div>
       </div>
 
@@ -595,6 +656,126 @@ window.removeSchool = async function(name) {
 };
 
 // === 단어장 관리 ===
+
+// 단어장 서브탭 전환
+window.switchWordTab = function(name) {
+  ['single','split','bulk'].forEach(t => {
+    document.getElementById('wpanel-' + t).style.display = t === name ? 'block' : 'none';
+    const btn = document.getElementById('wtab-' + t);
+    if (btn) {
+      btn.style.background = t === name
+        ? 'linear-gradient(135deg,#f2b8c6,#d4738f)' : '#fff9f6';
+      btn.style.color = t === name ? 'white' : '#9e7a87';
+    }
+  });
+  // 해당 탭의 학교 셀렉트에 목록 적용
+  applySchoolsToAll();
+};
+
+// 단어 파싱 공통 함수
+function parseWords(raw) {
+  const words = [];
+  const errors = [];
+  raw.split('\n').map(l => l.trim()).filter(l => l).forEach((line, i) => {
+    const match = line.match(/^(.+?)\s*[,=\t]\s*(.+)$/);
+    if (match) {
+      words.push({ english: match[1].trim(), korean: match[2].trim() });
+    } else {
+      errors.push(`${i+1}행: "${line}"`);
+    }
+  });
+  return { words, errors };
+}
+
+// 자동 분할 미리보기
+window.previewSplit = function() {
+  const title = document.getElementById('splitTitle').value.trim();
+  const size = parseInt(document.getElementById('splitSize').value) || 20;
+  const raw = document.getElementById('splitWords').value.trim();
+  const previewEl = document.getElementById('splitPreview');
+
+  if (!raw) { previewEl.innerHTML = ''; return; }
+  const { words, errors } = parseWords(raw);
+  const sets = Math.ceil(words.length / size);
+
+  let html = `
+    <div class="help" style="background:#f0fff4;border-left-color:#00b894;">
+      ✅ 총 <strong>${words.length}개</strong> 단어 →
+      <strong>${size}개</strong>씩 나누면 →
+      <strong>${sets}개</strong> 세트 생성 예정
+      ${errors.length > 0 ? `<br>⚠️ 파싱 오류 ${errors.length}행 (무시됨)` : ''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+  `;
+  for (let i = 0; i < Math.min(sets, 10); i++) {
+    const from = i * size + 1;
+    const to = Math.min((i+1) * size, words.length);
+    html += `<span style="background:#fce4ec;color:#c2567a;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;">
+      ${title || '단어장'} ${i+1}세트 (${from}-${to})
+    </span>`;
+  }
+  if (sets > 10) html += `<span style="color:#9e7a87;font-size:12px;padding:4px 8px;">...외 ${sets-10}개</span>`;
+  html += '</div>';
+  previewEl.innerHTML = html;
+};
+
+// 자동 분할 저장
+window.saveSplitWordSets = async function() {
+  const title = document.getElementById('splitTitle').value.trim();
+  const school = document.getElementById('splitSchool').value;
+  const grade = parseInt(document.getElementById('splitGrade').value);
+  const size = parseInt(document.getElementById('splitSize').value) || 20;
+  const maxAttempts = parseInt(document.getElementById('splitMaxAttempts').value) || 0;
+  const raw = document.getElementById('splitWords').value.trim();
+
+  if (!title || !school || !raw) {
+    alert('제목, 학교, 단어를 모두 입력해주세요!');
+    return;
+  }
+  if (size < 4) {
+    alert('세트당 단어 수는 최소 4개 이상이어야 해요 (4지선다)');
+    return;
+  }
+
+  const { words, errors } = parseWords(raw);
+  if (words.length < size) {
+    alert(`단어가 너무 적어요. 최소 ${size}개 이상 입력해주세요.`);
+    return;
+  }
+
+  const sets = Math.ceil(words.length / size);
+  if (!confirm(`총 ${words.length}개 단어를 ${size}개씩 나누어\n${sets}개 단어장을 생성합니다.\n진행할까요?`)) return;
+
+  let success = 0;
+  for (let i = 0; i < sets; i++) {
+    const chunk = words.slice(i * size, (i+1) * size);
+    const from = i * size + 1;
+    const to = Math.min((i+1) * size, words.length);
+    const setTitle = `${title} ${i+1}세트 (${from}-${to})`;
+    try {
+      await addDoc(collection(db, 'wordSets'), {
+        title: setTitle,
+        school, grade,
+        words: chunk,
+        maxAttempts,
+        setIndex: i + 1,
+        setTotal: sets,
+        parentTitle: title,
+        createdAt: new Date().toISOString()
+      });
+      success++;
+    } catch(e) {
+      console.error('저장 실패:', setTitle, e);
+    }
+  }
+
+  alert(`🎉 완료! ${success}/${sets}개 단어장 저장됐어요.`);
+  document.getElementById('splitTitle').value = '';
+  document.getElementById('splitWords').value = '';
+  document.getElementById('splitPreview').innerHTML = '';
+  loadWordSets();
+};
+
 window.loadDemoWords = function() {
   document.getElementById('newWords').value =
 `apple,사과
@@ -728,24 +909,14 @@ window.saveWordSet = async function() {
   const school = document.getElementById('newSchool').value;
   const grade = parseInt(document.getElementById('newGrade').value);
   const raw = document.getElementById('newWords').value.trim();
+  const maxAttempts = parseInt(document.getElementById('newMaxAttempts').value) || 0;
 
   if (!title || !raw) {
     alert('제목과 단어를 입력해주세요!');
     return;
   }
 
-  // 단어 파싱: "영어,한국어" / "영어, 한국어" / "영어=한국어" 모두 지원
-  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-  const words = [];
-  const errors = [];
-  lines.forEach((line, i) => {
-    const match = line.match(/^(.+?)\s*[,=\t]\s*(.+)$/);
-    if (match) {
-      words.push({ english: match[1].trim(), korean: match[2].trim() });
-    } else {
-      errors.push(`${i + 1}행: "${line}"`);
-    }
-  });
+  const { words, errors } = parseWords(raw);
 
   if (errors.length > 0) {
     if (!confirm(`다음 줄은 형식이 맞지 않아요:\n${errors.slice(0, 5).join('\n')}\n\n나머지만 저장할까요?`)) return;
@@ -757,10 +928,10 @@ window.saveWordSet = async function() {
 
   try {
     await addDoc(collection(db, 'wordSets'), {
-      title, school, grade, words,
+      title, school, grade, words, maxAttempts,
       createdAt: new Date().toISOString()
     });
-    alert(`✅ "${title}" 저장 완료! (단어 ${words.length}개)`);
+    alert(`✅ "${title}" 저장 완료! (단어 ${words.length}개, 응시 ${maxAttempts === 0 ? '무제한' : maxAttempts + '회'})`);
     document.getElementById('newTitle').value = '';
     document.getElementById('newWords').value = '';
     loadWordSets();
@@ -773,38 +944,118 @@ async function loadWordSets() {
   const listEl = document.getElementById('wordSetsList');
   listEl.innerHTML = '불러오는 중...';
   listEl.className = 'empty-state';
+
+  const fSchool = document.getElementById('filterWordSchool')?.value || '';
+  const fGrade = document.getElementById('filterWordGrade')?.value || '';
+
+  // 단어장 필터 셀렉트에 학교 옵션 채우기
+  const fwSchoolEl = document.getElementById('filterWordSchool');
+  if (fwSchoolEl && fwSchoolEl.options.length <= 1) {
+    fwSchoolEl.innerHTML = '<option value="">전체 학교</option>' +
+      schoolList.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+
   try {
-    const snap = await getDocs(collection(db, 'wordSets'));
-    if (snap.empty) {
+    // 단어장 + 기록 동시 로드 (응시 횟수 집계용)
+    const [wordSnap, recordSnap] = await Promise.all([
+      getDocs(collection(db, 'wordSets')),
+      getDocs(collection(db, 'records'))
+    ]);
+
+    // 단어장별 응시 횟수 집계
+    const attemptsBySet = {};
+    recordSnap.forEach(d => {
+      const r = d.data();
+      attemptsBySet[r.wordSetId] = (attemptsBySet[r.wordSetId] || 0) + 1;
+    });
+
+    let wordSets = [];
+    wordSnap.forEach(d => wordSets.push({ id: d.id, ...d.data() }));
+
+    // 필터
+    if (fSchool) wordSets = wordSets.filter(w => w.school === fSchool);
+    if (fGrade) wordSets = wordSets.filter(w => w.grade === parseInt(fGrade));
+
+    // 최신순 정렬
+    wordSets.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+    if (wordSets.empty || wordSets.length === 0) {
       listEl.innerHTML = '아직 등록된 단어장이 없어요. 위에서 추가해보세요!';
+      listEl.className = 'empty-state';
       return;
     }
-    const rows = [];
-    snap.forEach(d => {
-      const data = d.data();
-      rows.push(`
+
+    const rows = wordSets.map(data => {
+      const attempts = attemptsBySet[data.id] || 0;
+      const max = data.maxAttempts || 0;
+      const attemptBadge = max === 0
+        ? `<span class="pill good">무제한</span>`
+        : `<span class="pill ${attempts >= max ? 'bad' : 'warn'}">${max}회 제한</span>`;
+      const parentBadge = data.parentTitle
+        ? `<span style="font-size:11px;color:#9e7a87;margin-left:4px;">(${data.parentTitle})</span>`
+        : '';
+      return `
         <tr>
-          <td><strong>${data.title}</strong></td>
+          <td>
+            <strong>${data.title}</strong>${parentBadge}
+          </td>
           <td>${data.school} ${data.grade}학년</td>
           <td>${data.words?.length || 0}개</td>
+          <td>${attemptBadge}</td>
+          <td><span class="pill warn">${attempts}회 응시</span></td>
           <td>${(data.createdAt || '').slice(0, 10)}</td>
           <td>
-            <button class="btn btn-danger btn-sm" onclick="deleteWordSet('${d.id}','${data.title.replace(/'/g,"\\'")}')">삭제</button>
+            <button class="btn btn-secondary btn-sm"
+              onclick="editMaxAttempts('${data.id}','${data.title.replace(/'/g,"\\'")}',${max})">
+              ✏️ 횟수
+            </button>
+            <button class="btn btn-danger btn-sm"
+              onclick="deleteWordSet('${data.id}','${data.title.replace(/'/g,"\\'")}')">
+              삭제
+            </button>
           </td>
         </tr>
-      `);
-    });
+      `;
+    }).join('');
+
     listEl.className = '';
     listEl.innerHTML = `
+      <div style="margin-bottom:8px;font-size:13px;color:#9e7a87;">총 ${wordSets.length}개</div>
       <table>
-        <thead><tr><th>제목</th><th>대상</th><th>단어 수</th><th>등록일</th><th></th></tr></thead>
-        <tbody>${rows.join('')}</tbody>
+        <thead><tr>
+          <th>제목</th><th>대상</th><th>단어수</th><th>응시제한</th><th>총응시</th><th>등록일</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
       </table>
     `;
   } catch (err) {
     listEl.innerHTML = '오류: ' + err.message;
   }
 }
+
+// 응시 횟수 수정
+window.editMaxAttempts = async function(id, title, current) {
+  const options = ['0 (무제한)', '1', '2', '3', '5', '10'];
+  const currentLabel = current === 0 ? '0 (무제한)' : String(current);
+  const newVal = prompt(
+    `"${title}"\n최대 응시 횟수를 입력하세요.\n(0 = 무제한, 현재: ${currentLabel})`,
+    current
+  );
+  if (newVal === null) return;
+  const num = parseInt(newVal);
+  if (isNaN(num) || num < 0) {
+    alert('0 이상의 숫자를 입력해주세요.');
+    return;
+  }
+  try {
+    const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(db, 'wordSets', id), { maxAttempts: num });
+    alert(`✅ "${title}" 응시 횟수가 ${num === 0 ? '무제한' : num + '회'}으로 변경됐어요!`);
+    loadWordSets();
+  } catch (err) {
+    alert('변경 실패: ' + err.message);
+  }
+};
 
 window.deleteWordSet = async function(id, title) {
   if (!confirm(`"${title}" 단어장을 정말 삭제할까요?`)) return;
