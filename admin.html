@@ -124,6 +124,7 @@
     <h2>🔐 관리자 로그인</h2>
     <input type="password" id="adminPw" placeholder="관리자 비밀번호" autocomplete="off">
     <button onclick="checkAdmin()">로그인</button>
+
   </div>
 
   <div id="mainScreen" style="display:none;">
@@ -191,6 +192,34 @@
             💡 한 줄에 하나씩 <code>영어,한국어</code> 형식. <code>apple = 사과</code> 형식도 가능
           </div>
           <textarea id="newWords" placeholder="apple,사과&#10;banana,바나나&#10;grape,포도"></textarea>
+
+          <!-- 개별 학생 배정 -->
+          <div style="margin-top:14px;">
+            <div style="font-size:13px;font-weight:600;color:#5c3d47;margin-bottom:6px;">
+              👤 개별 학생 배정 <span style="font-size:11px;color:#9e7a87;font-weight:400;">(선택 안 하면 학교+학년 전체 공개)</span>
+            </div>
+            <div class="help" style="margin-bottom:8px;">
+              💡 특정 학생에게만 보이게 하려면 아래에서 선택하세요.<br>
+              아무도 선택 안 하면 해당 학교+학년 학생 전체에게 공개됩니다.
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <select id="assignSchool" onchange="loadAssignStudents()" style="padding:8px 12px;border:2px solid #f2d4dc;border-radius:10px;font-size:13px;">
+                <option value="">학교 선택</option>
+              </select>
+              <select id="assignGrade" onchange="loadAssignStudents()" style="padding:8px 12px;border:2px solid #f2d4dc;border-radius:10px;font-size:13px;">
+                <option value="">학년 선택</option>
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" onclick="selectAllAssign()">전체선택</button>
+              <button class="btn btn-secondary btn-sm" onclick="clearAllAssign()">전체해제</button>
+            </div>
+            <div id="assignStudentList" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;background:#fff9f6;border-radius:10px;padding:10px;border:1px solid #f2d4dc;">
+              <span style="color:#9e7a87;font-size:12px;">위에서 학교와 학년을 선택하면 학생 목록이 나타납니다</span>
+            </div>
+          </div>
+
           <div style="margin-top:12px;display:flex;gap:10px;">
             <button class="btn btn-primary" onclick="saveWordSet()">단어장 저장</button>
             <button class="btn btn-secondary" onclick="loadDemoWords()">📥 시범 단어 10개</button>
@@ -559,7 +588,9 @@ function applySchoolsToAll() {
     'newSchool',          // 단어장 추가
     'filterSchool',       // 기록 필터
     'newStudentSchool',   // 학생 등록
-    'studentFilterSchool' // 학생 필터
+    'studentFilterSchool', // 학생 필터
+    'assignSchool',       // 개별 배정
+    'splitSchool',        // 자동분할
   ];
   const options = schoolList.map(s => `<option value="${s}">${s}</option>`).join('');
   const allOptions = `<option value="">전체 학교</option>` + options;
@@ -923,9 +954,16 @@ window.saveWordSet = async function() {
     return;
   }
 
+  // 개별 배정 학생 ID 수집
+  const assignedChecks = document.querySelectorAll('.assign-chk:checked');
+  const assignedTo = assignedChecks.length > 0
+    ? [...assignedChecks].map(c => c.value)
+    : null; // null = 전체공개
+
   try {
     await addDoc(collection(db, 'wordSets'), {
       title, school, grade, words, maxAttempts,
+      ...(assignedTo ? { assignedTo } : {}),
       createdAt: new Date().toISOString()
     });
     alert(`✅ "${title}" 저장 완료! (단어 ${words.length}개, 응시 ${maxAttempts === 0 ? '무제한' : maxAttempts + '회'})`);
@@ -988,13 +1026,16 @@ async function loadWordSets() {
       const attemptBadge = max === 0
         ? `<span class="pill good">무제한</span>`
         : `<span class="pill ${attempts >= max ? 'bad' : 'warn'}">${max}회 제한</span>`;
+      const assignedBadge = data.assignedTo && data.assignedTo.length > 0
+        ? `<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:2px 7px;border-radius:8px;margin-left:4px;">👤 ${data.assignedTo.length}명 지정</span>`
+        : '<span style="font-size:11px;color:#9e7a87;"></span>';
       const parentBadge = data.parentTitle
         ? `<span style="font-size:11px;color:#9e7a87;margin-left:4px;">(${data.parentTitle})</span>`
         : '';
       return `
         <tr>
           <td>
-            <strong>${data.title}</strong>${parentBadge}
+            <strong>${data.title}</strong>${parentBadge}${assignedBadge}
           </td>
           <td>${data.school} ${data.grade}학년</td>
           <td>${data.words?.length || 0}개</td>
@@ -1005,6 +1046,10 @@ async function loadWordSets() {
             <button class="btn btn-secondary btn-sm"
               onclick="editMaxAttempts('${data.id}','${data.title.replace(/'/g,"\\'")}',${max})">
               ✏️ 횟수
+            </button>
+                        <button class="btn btn-secondary btn-sm"
+              onclick="editAssignedTo('${data.id}','${data.title}',data.assignedTo||[])">
+              👤 배정
             </button>
             <button class="btn btn-danger btn-sm"
               onclick="deleteWordSet('${data.id}','${data.title.replace(/'/g,"\\'")}')">
@@ -1600,6 +1645,104 @@ function switchTabByName(name) {
   else if (name === 'students') tabs[2].classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
 }
+
+
+// ── 개별 학생 배정 기능 ──
+
+window.loadAssignStudents = async function() {
+  const school = document.getElementById('assignSchool').value;
+  const grade = document.getElementById('assignGrade').value;
+  const listEl = document.getElementById('assignStudentList');
+  if (!school || !grade) {
+    listEl.innerHTML = '<span style="color:#9e7a87;font-size:12px;">학교와 학년을 모두 선택해주세요</span>';
+    return;
+  }
+  listEl.innerHTML = '<span style="color:#9e7a87;font-size:12px;">불러오는 중...</span>';
+  try {
+    const snap = await getDocs(collection(db, 'students'));
+    const students = [];
+    snap.forEach(d => {
+      const s = d.data();
+      if (s.school === school && s.grade === parseInt(grade)) {
+        students.push({ id: d.id, name: s.name });
+      }
+    });
+    students.sort((a,b) => a.name.localeCompare(b.name));
+    if (students.length === 0) {
+      listEl.innerHTML = '<span style="color:#9e7a87;font-size:12px;">해당 학교·학년에 등록된 학생이 없어요</span>';
+      return;
+    }
+    listEl.innerHTML = students.map(s => `
+      <label style="display:inline-flex;align-items:center;gap:4px;background:white;border:1.5px solid #f2d4dc;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:13px;font-weight:600;color:#5c3d47;">
+        <input type="checkbox" class="assign-chk" value="${s.id}" style="accent-color:#d4738f;">
+        ${s.name}
+      </label>
+    `).join('');
+  } catch(e) {
+    listEl.innerHTML = `<span style="color:red;font-size:12px;">오류: ${e.message}</span>`;
+  }
+};
+
+window.selectAllAssign = function() {
+  document.querySelectorAll('.assign-chk').forEach(c => c.checked = true);
+};
+window.clearAllAssign = function() {
+  document.querySelectorAll('.assign-chk').forEach(c => c.checked = false);
+};
+
+// 기존 단어장 배정 변경
+window.editAssignedTo = async function(wordSetId, title, currentAssigned) {
+  try {
+    const snap = await getDocs(collection(db, 'students'));
+    const allStudents = [];
+    snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
+    allStudents.sort((a,b) => {
+      if (a.school !== b.school) return a.school.localeCompare(b.school);
+      if (a.grade !== b.grade) return a.grade - b.grade;
+      return a.name.localeCompare(b.name);
+    });
+
+    // 현재 배정 학생 이름
+    const currentNames = currentAssigned.length > 0
+      ? currentAssigned.map(id => allStudents.find(s=>s.id===id)?.name || id).join(', ')
+      : '전체공개';
+
+    const listStr = allStudents.map((s, i) =>
+      `${i+1}. ${s.name} (${s.school} ${s.grade}학년)${currentAssigned.includes(s.id) ? ' ✅' : ''}`
+    ).join('
+');
+
+    const input = prompt(
+      `"${title}" 배정 변경
+현재: ${currentNames}
+
+번호를 쉼표로 입력 (전체공개=0 입력)
+
+${listStr}`
+    );
+    if (input === null) return;
+
+    let assignedTo = null;
+    if (input.trim() !== '0' && input.trim() !== '') {
+      const nums = input.split(',').map(n => parseInt(n.trim()) - 1);
+      const picked = nums.filter(n => n >= 0 && n < allStudents.length).map(n => allStudents[n].id);
+      if (picked.length > 0) assignedTo = picked;
+    }
+
+    const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    if (assignedTo) {
+      await updateDoc(doc(db, 'wordSets', wordSetId), { assignedTo });
+      const names2 = assignedTo.map(id => allStudents.find(s=>s.id===id)?.name).filter(Boolean);
+      alert('✅ 배정 완료! 배정된 학생: ' + names2.join(', '));
+    } else {
+      await updateDoc(doc(db, 'wordSets', wordSetId), { assignedTo: null });
+      alert('✅ 전체공개로 변경되었어요!');
+    }
+    loadWordSets();
+  } catch(e) {
+    alert('배정 실패: ' + e.message);
+  }
+};
 
 window.deleteStudent = async function(id, name) {
   if (!confirm(`"${name}" 학생을 삭제할까요?\n(시험 기록은 그대로 보존됩니다)`)) return;

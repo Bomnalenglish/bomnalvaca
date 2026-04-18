@@ -147,7 +147,17 @@ async function loadQuizzes() {
 
     const listEl = document.getElementById('quizList');
 
-    if (wordSnap.empty) {
+    // assignedTo 필터: 내 ID가 배정목록에 있거나, 배정목록이 없으면 전체공개
+    const visibleDocs = [];
+    wordSnap.forEach(doc => {
+      const data = doc.data();
+      const assigned = data.assignedTo;
+      if (!assigned || assigned.length === 0 || assigned.includes(student.id)) {
+        visibleDocs.push({ id: doc.id, data });
+      }
+    });
+
+    if (visibleDocs.length === 0) {
       listEl.className = '';
       listEl.innerHTML = `<div class="empty">아직 등록된 단어장이 없어요.<br>선생님께 문의해주세요!</div>`;
       return;
@@ -156,10 +166,10 @@ async function loadQuizzes() {
     listEl.className = 'quiz-grid';
     listEl.innerHTML = '';
     let i = 0;
-    wordSnap.forEach(doc => {
-      const data = doc.data();
+    visibleDocs.forEach(({ id: docId, data }) => {
+      const doc = { id: docId };
       const max = data.maxAttempts || 0;
-      const used = myAttempts[doc.id] || 0;
+      const used = myAttempts[docId] || 0;
       const isLocked = max > 0 && used >= max;
 
       // 응시 정보 배지
@@ -186,7 +196,7 @@ async function loadQuizzes() {
       if (!isLocked) {
         card.onclick = () => {
           sessionStorage.setItem('currentQuiz', JSON.stringify({
-            id: doc.id,
+            id: docId,
             title: data.title,
             words: data.words,
             maxAttempts: max
